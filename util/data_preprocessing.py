@@ -18,16 +18,8 @@ def clean_data(df)->pd.DataFrame:
     1. Drops the first three rows (assumed to be unit information).
     2. Selects specific columns: 'TRACK_ID', 'POSITION_X', 'POSITION_Y', 'POSITION_T', 'FRAME'.
     3. Converts data types of the selected columns:
-        - 'TRACK_ID' to 'category'
-        - 'POSITION_X', 'POSITION_Y', 'POSITION_T' to 'float32'
-        - 'FRAME' to 'int32'
     4. Drops rows where 'TRACK_ID' is NaN.
-    5. Renames columns:
-        - 'TRACK_ID' to 'ID'
-        - 'POSITION_X' to 'X'
-        - 'POSITION_Y' to 'Y'
-        - 'POSITION_T' to 'T'
-        - 'FRAME' to 'Frame'
+    
     Args:
         df (pd.DataFrame): The input DataFrame to be cleaned.
     Returns:
@@ -37,10 +29,22 @@ def clean_data(df)->pd.DataFrame:
     # Drop rows 0, 1, and 2 they are unit information
     df = df.drop([0, 1, 2])
     df = df.loc[:, ['TRACK_ID', 'POSITION_X', 'POSITION_Y', 'POSITION_T', 'FRAME']]
-    df = df.astype({'TRACK_ID': 'category', 'POSITION_X': 'float32', 'POSITION_Y': 'float32', 'POSITION_T': 'float32', 'FRAME': 'int32'})
+    df = df.astype({'TRACK_ID': 'int32', 'POSITION_X': 'float32', 'POSITION_Y': 'float32', 'POSITION_T': 'float32', 'FRAME': 'int32'})
     df = df.dropna(subset=['TRACK_ID'])
-    df = df.rename(columns={'TRACK_ID': 'ID', 'POSITION_X': 'X', 'POSITION_Y': 'Y', 'POSITION_T': 'T', 'FRAME': 'Frame'})
+    # df = df.rename(columns={'TRACK_ID': 'ID', 'POSITION_X': 'X', 'POSITION_Y': 'Y', 'POSITION_T': 'T', 'FRAME': 'Frame'})
     return df
+
+def sort_by_frame(df: pd.DataFrame)->pd.DataFrame:
+    """
+    Sorts the input DataFrame by 'Frame' in ascending order.
+    Args:
+        df (pd.DataFrame): The input DataFrame to be sorted.
+    Returns:
+        pd.DataFrame: The sorted DataFrame.
+    """
+    df = df.groupby('TRACK_ID', observed=True).apply(lambda x: x.sort_values('FRAME')).reset_index(drop=True)
+    return df
+
 
 # Define the path to the directory containing the CSV files
 def load_csv_files(csv_root)->pd.DataFrame:
@@ -58,6 +62,9 @@ def load_csv_files(csv_root)->pd.DataFrame:
 
     for file in csv_files:
         df = pd.read_csv(file, engine='pyarrow')
+        df = clean_data(df)
+        df = df.sort_values(by='TRACK_ID')
+        df = sort_by_frame(df)
         df['FileID'] = file.split('\\')[-1].split('.')[0]
         dfs.append(df)
 
