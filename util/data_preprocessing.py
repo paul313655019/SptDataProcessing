@@ -9,8 +9,7 @@ Functions:
 """
 
 import pandas as pd
-
-import glob
+from pathlib import Path
 
 def clean_data(df)->pd.DataFrame:
     """
@@ -56,7 +55,8 @@ def load_csv_files(csv_root)->pd.DataFrame:
         pd.DataFrame: A DataFrame containing the combined data from all CSV files in the directory.
     """
 
-    csv_files = glob.glob(csv_root + r'\*.csv')
+    path = Path(csv_root)
+    csv_files = path.glob('*.csv')
 
     dfs = []
 
@@ -65,9 +65,9 @@ def load_csv_files(csv_root)->pd.DataFrame:
         df = clean_data(df)
         df = df.sort_values(by='TRACK_ID')
         df = sort_by_frame(df)
-        df['FileID'] = file.split('\\')[-1].split('.')[0]
+        df['FileID'] = file.stem
         dfs.append(df)
 
     df = pd.concat(dfs, ignore_index=True)
-    
+
     return df
