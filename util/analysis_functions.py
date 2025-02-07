@@ -33,7 +33,7 @@ def calculate_msd(df) -> pd.DataFrame:
         msd_results[lag] = displacement.mean()
     msd_df = pd.DataFrame(list(msd_results.items()), columns=['Lag_T', 'MSD'])
     msd_df['Lag_T'] = msd_df['Lag_T'] * dt
-    msd_df['FileID'] = df['FileID'].iloc[0]
+    msd_df['FILE_ID'] = df['FILE_ID'].iloc[0]
     msd_df['TRACK_ID'] = df['TRACK_ID'].iloc[0]
 
     # msd_df['ID'] = df['ID'].iloc[0]

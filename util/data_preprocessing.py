@@ -8,8 +8,8 @@ Functions:
         Loads and combines multiple CSV files from a specified directory into a single DataFrame.
 """
 
-import pandas as pd
 from pathlib import Path
+import pandas as pd
 
 def clean_data(df)->pd.DataFrame:
     """
@@ -65,7 +65,7 @@ def load_csv_files(csv_root)->pd.DataFrame:
         df = clean_data(df)
         df = df.sort_values(by='TRACK_ID')
         df = sort_by_frame(df)
-        df['FileID'] = file.stem
+        df['FILE_ID'] = file.stem
         dfs.append(df)
 
     df = pd.concat(dfs, ignore_index=True)
