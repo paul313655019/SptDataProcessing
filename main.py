@@ -36,13 +36,13 @@ fig.show(config=config)
 # Plot a histogram of the 'D' column
 grouped_df = df.groupby(['FILE_ID', 'TRACK_ID'])['D'].mean().to_frame()
 grouped_df = grouped_df[grouped_df['D'] > 0.2]
-fig = px.histogram(x=grouped_df['D'], nbins=3)
+fig = px.histogram(x=grouped_df['D'], nbins=25)
 fig.update_layout(
     xaxis_title='Diffusion Coefficient (D)',
     yaxis_title='Count',
-    bargap=0.1,
-    paper_bgcolor='rgb(255, 255, 255)',
-    plot_bgcolor='rgb(255, 255, 255)'
+    bargap=0.01,
+    paper_bgcolor='rgba(255, 255, 255, 0.90)',
+    plot_bgcolor='rgba(60, 60, 60, 0.44)'
 )
 fig.show()
 # %%
