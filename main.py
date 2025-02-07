@@ -7,6 +7,7 @@ import plotly.express as px
 
 import util.data_preprocessing as data_pp
 import util.analysis_functions as analysis
+import util.look_and_feel as laf
 
 data_path = Path(r'F:\Mark SPT\2024.11.04\TrackingResults')
 df = data_pp.load_csv_files(data_path)
@@ -26,20 +27,9 @@ file_ids = df['FILE_ID'].unique()
 filtered_df = df[df['FILE_ID'] == file_ids[0]]
 filtered_df = filtered_df[filtered_df['D'] > 0.09]
 # filtered_df = filtered_df[filtered_df['D'] > 0.7]
+
 fig = px.line(filtered_df, x='POSITION_X', y='POSITION_Y', color='TRACK_ID')
-fig.update_layout(width=600, height=600)
-fig.update_xaxes(range=[0, 52000])
-fig.update_yaxes(range=[0, 52000])
-fig.update_layout(showlegend=False)
-fig.update_xaxes(title=None, showticklabels=False, showgrid=False, zeroline=False)
-fig.update_yaxes(title=None, showticklabels=False, showgrid=False, zeroline=False)
-# fig.update_layout(yaxis_scaleanchor="x", yaxis_scaleratio=1)
-# Show the plot
-fig.update_layout(
-    margin=dict(l=0, r=0, t=0, b=0),
-    paper_bgcolor='rgba(0, 0, 0, 0)',
-    plot_bgcolor='rgba(0, 0, 0, 0)',
-)
+fig = laf.plotly_style_tracks(fig)
 config = {'toImageButtonOptions': {'scale': 4}}
 fig.show(config=config)
 # %%
