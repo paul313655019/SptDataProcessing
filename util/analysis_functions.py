@@ -27,15 +27,16 @@ def calculate_msd(df) -> pd.DataFrame:
     max_lag =round(const.MSD_LENGTH_DIVISOR * len(df))  # Set the maximum lag time to 60% of the total time
     msd_results = {}
     for lag in range(1, max_lag + 1):
-        dy = df['POSITION_Y'].diff(periods=lag).dropna()
-        dx = df['POSITION_X'].diff(periods=lag).dropna()
+        dy = df['Y'].diff(periods=lag).dropna()
+        dx = df['X'].diff(periods=lag).dropna()
         displacement = (dx*0.001)**2 + (dy*0.001)**2 # convert to microns
         msd_results[lag] = displacement.mean()
     msd_df = pd.DataFrame(list(msd_results.items()), columns=['Lag_T', 'MSD'])
     msd_df['Lag_T'] = msd_df['Lag_T'] * dt
-    msd_df['FILE_ID'] = df['FILE_ID'].iloc[0]
-    msd_df['TRACK_ID'] = df['TRACK_ID'].iloc[0]
-
+    # msd_df['FileID'] = df['FileID'].iloc[0]
+    # msd_df['TrackID'] = df['TrackID'].iloc[0]
+    msd_df['UID'] = df['UID'].iloc[0]
+    
     # msd_df['ID'] = df['ID'].iloc[0]
     # msd_df = msd_df.astype({'ID': 'category'})
     return msd_df
@@ -69,3 +70,18 @@ def calculate_diff_d(df) -> pd.DataFrame:
     df['D_error'] = d_error
     
     return df
+
+def add_msd_column(df):
+    """
+    create new dataframe with the addition of the MSD and lag time columns to the input DataFrame.
+    """
+    msd_df = df.groupby('UID').apply(calculate_msd).reset_index(drop=True)
+
+    result_df = pd.DataFrame()
+
+    for uid in df['UID'].unique():
+        temp = df[df['UID'] == uid].reset_index(drop=True)
+        temp['MSD'] = msd_df[msd_df['UID'] == uid]['MSD'].reset_index(drop=True)
+        temp['Lag_T'] = msd_df[msd_df['UID'] == uid]['Lag_T'].reset_index(drop=True)
+        result_df = pd.concat([result_df, temp], ignore_index=True)
+    return result_df
