@@ -10,10 +10,10 @@ import util.analysis_functions as analysis
 import util.look_and_feel as laf
 
 data_path = Path(r'F:\Mark SPT\2024.11.04\TrackingResults')
-df_raw = data_pp.load_csv_files(data_path)
+df = data_pp.load_csv_files(data_path)
 
-df_raw.info()
-df_raw.head(20)
+df.info()
+df.head(20)
 
 # %%
 # Calculate the diffusion coefficient
