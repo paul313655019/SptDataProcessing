@@ -16,11 +16,6 @@ df_raw.info()
 df_raw.head(20)
 
 # %%
-df = analysis.add_msd_column(df_raw)
-
-df.info()
-
-# %%
 # Calculate the diffusion coefficient
 df = df.groupby('UID').apply(analysis.calculate_diff_d).reset_index(drop=True)
 df.info()
