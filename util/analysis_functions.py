@@ -60,7 +60,7 @@ def calculate_diff_d(df) -> pd.DataFrame:
     # calculate the mean squared displacement
     # dt = const.DT
     msd = calculate_msd(df)
-    
+    df = df.reset_index(drop=True)
     #fit the MSD to a line
     popt, pcov = curve_fit(normal_diffusion_msd, msd['Lag_T'], msd['MSD'])
     d_coefficient = popt[0]
@@ -68,6 +68,8 @@ def calculate_diff_d(df) -> pd.DataFrame:
     # add the d coefficient to the dataframe
     df['D'] = d_coefficient
     df['D_error'] = d_error
+    df['MSD'] = msd['MSD'].reset_index(drop=True)
+    df['Lag_T'] = msd['Lag_T'].reset_index(drop=True)
     
     return df
 
@@ -85,3 +87,9 @@ def add_msd_column(df):
         temp['Lag_T'] = msd_df[msd_df['UID'] == uid]['Lag_T'].reset_index(drop=True)
         result_df = pd.concat([result_df, temp], ignore_index=True)
     return result_df
+# This is the original code from main.py
+# that I used to add the MSD and Lag_T columns to the DataFrame.
+# but it is now included in the calculate_diff_d function.
+# df = analysis.add_msd_column(df_raw)
+
+# df.info()
