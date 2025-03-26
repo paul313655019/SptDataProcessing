@@ -20,10 +20,10 @@ def calculate_msd(df) -> pd.DataFrame:
     enough data to calculate the MSD.
     
     Parameters:
-    df (pandas.DataFrame): DataFrame containing the trajectory data with columns 'X' and 'Y'.
-    dt (float): Time interval between frames.
+        df (pandas.DataFrame): DataFrame containing the trajectory data with columns 'X' and 'Y'.
+        dt (float): Time interval between frames.
     Returns:
-    pandas.DataFrame: DataFrame containing the MSD results with columns 'Lag', 'MSD', and 'T'.
+        pandas.DataFrame: DataFrame containing the MSD results with columns 'Lag', 'MSD', and 'T'.
     """
     dt = const.DT
     max_lag =round(const.MSD_LENGTH_DIVISOR * len(df))  # Set the maximum lag time to 60% of the total time
