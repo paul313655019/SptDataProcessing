@@ -54,9 +54,21 @@ def normal_diffusion_msd(t, d):
     """
     return 4 * d * t
 
+def anomalous_diffusion_msd(t, d, a):
+    """
+    Calculate the mean squared displacement for anomalous diffusion in 2D.
+    Parameters:
+        t (float): Time lag.
+        d (float): Diffusion coefficient.
+        a (float): Anomalous exponent.
+    Returns:
+        float: The mean squared displacement for the given time lag and diffusion coefficient.
+    """
+    return 4 * d * t**a
+
 def calculate_diff_d(df) -> pd.DataFrame:
     """
-    Calculate the diffusion coefficient for a given DataFrame.
+    Calculate the normal diffusion coefficient for a given DataFrame.
     """
     # Check if the DataFrame is empty. I don't know why this is necessary but curve_fit
     # throws an error that ydata is empty if this is not done.
@@ -71,9 +83,30 @@ def calculate_diff_d(df) -> pd.DataFrame:
     d_coefficient = popt[0]
     d_error = np.sqrt(np.diag(pcov))[0]
     # add the d coefficient to the dataframe
-    df["D"] = d_coefficient
-    df["D_error"] = d_error
-    
+    df["D_Norm"] = d_coefficient
+    df["D_Norm_error"] = d_error
+
+    return df
+
+def calculate_anom_diff_coef(df) -> pd.DataFrame:
+    """
+    Calculate the anomalous diffusion coefficient and anomalous exponent for a given DataFrame.
+    """
+    # Check if the DataFrame is empty. I don't know why this is necessary but curve_fit
+    # throws an error that ydata is empty if this is not done.
+    if len(df) == 0:
+        return df
+
+    ydata = df["MSD"].dropna().values
+    xdata = df["Lag_T"].dropna().values
+
+    # fit the MSD to a line
+    popt, pcov = curve_fit(anomalous_diffusion_msd, xdata, ydata)
+
+    # add the d coefficient to the dataframe
+    df["D_Anom"] = popt[0]
+    df["a_Anom"] = popt[1]
+
     return df
 
 def add_msd_column(df):
@@ -481,3 +514,189 @@ def fit_jd_3exp_norm(df):
     df["JD3xn_D3"] = results.params['b3'].value
     df["JD3xn_D3_error"] = results.params['b3'].stderr
     return df
+
+def flag_alpha(df):
+    """
+    Flag the anomalousness exponent (Alpha) from the normalized 
+    MSD plot in log-log scale from one of the first few points.
+    This function calculates the normalized MSD value at a specific point
+    (defined by `const.MSD_SLOPE_POINTS`) and classifies it based on the
+    ALPHA_THRESHOLDS defined in the constants module.
+    The classification is done into four categories: 'ignore', 'sub', 'sup', and 'normal'.
+    Parameters:
+        df (pandas.DataFrame): DataFrame containing the MSD data with columns 'Lag_T' and 'MSD'.
+    Returns:
+        pandas.DataFrame: DataFrame with an additional column 
+        'Alpha_Flag' indicating the anomalousness exponent.
+    """
+    alpha_ignore = const.ALPHA_THRESHOLDS['ignore']
+    alpha_sub = const.ALPHA_THRESHOLDS['sub']
+    alpha_sup = const.ALPHA_THRESHOLDS['sup']
+    
+    msd_points = const.MSD_SLOPE_POINTS
+    df['Alpha_Flag'] = 'normal'
+
+    norm_msd = df['MSD'].iloc[msd_points-1] / df['MSD'].iloc[0]
+    if norm_msd <= msd_points ** alpha_ignore:
+        df['Alpha_Flag'] = 'ignore'
+    elif norm_msd <= msd_points ** alpha_sub:
+        df['Alpha_Flag'] = 'sub'
+    elif norm_msd >= msd_points ** alpha_sup:
+        df['Alpha_Flag'] = 'sup'
+
+    return df
+
+def flag_alpha2(df):
+    """
+    Flag the anomalousness exponent (Alpha) from the normalized 
+    MSD plot in log-log scale through fitting a line to the first few points.
+    Parameters:
+        df (pandas.DataFrame): DataFrame containing the MSD data with columns 'Lag_T' and 'MSD'.
+    Returns:
+        pandas.DataFrame: DataFrame with an additional column 
+        'Alpha_Flag' indicating the anomalousness exponent.
+        'Alpha' column contains the slope of the line fitted to the log-log data.
+    """
+    num_points = const.MSD_SLOPE_POINTS
+    df['Alpha_Flag'] = 'normal'
+    df['Alpha'] = np.nan
+
+    msd = df['MSD'].iloc[:num_points]
+    lag_t = df['Lag_T'].iloc[:num_points]
+
+    # Fit a straight line to log-log data
+    log_lag_t = np.log(lag_t)
+    log_msd = np.log(msd)
+    slope, _ = np.polyfit(log_lag_t, log_msd, 1)
+
+    # Flag based on slope thresholds
+    alpha_ignore = const.ALPHA_THRESHOLDS['ignore']
+    alpha_sub = const.ALPHA_THRESHOLDS['sub']
+    alpha_sup = const.ALPHA_THRESHOLDS['sup']
+
+    if slope <= alpha_ignore:
+        df['Alpha_Flag'] = 'ignore'
+    elif slope <= alpha_sub:
+        df['Alpha_Flag'] = 'sub'
+    elif slope >= alpha_sup:
+        df['Alpha_Flag'] = 'sup'
+
+    df['Alpha'] = slope
+    return df
+
+def alpha_classes(df):
+    """
+    Calculate the slope (alpha) between the first point and a specified point
+    on the Mean Squared Displacement (MSD) curve and classify it based on
+    the 'Alpha_Flag' column.
+    This function computes the normalized MSD value at a specific point
+    (defined by `const.MSD_SLOPE_POINTS`) and calculates the slope (alpha)
+    using the logarithmic ratio. The result is returned as a DataFrame
+    containing the calculated alpha value and its corresponding class flag.
+    Parameters:
+        df (pd.DataFrame): Input DataFrame containing the MSD values and
+            'Alpha_Flag' column.
+    Returns:
+        pd.DataFrame: A DataFrame with two columns:
+            - 'Alpha_Flag': The class flag for the alpha value.
+            - 'Alpha': The calculated slope (alpha) value.
+    Notes:
+        - The slope is calculated between the first point and the point
+        specified by `const.MSD_SLOPE_POINTS` on the MSD curve.
+        - The 'Alpha_Flag' column is used to group and classify the alpha values.
+    """
+
+    result = pd.DataFrame()
+    norm_msd_point = df['MSD'].iloc[const.MSD_SLOPE_POINTS-1] / df['MSD'].iloc[0]
+    slope = np.log(norm_msd_point) / np.log(const.MSD_SLOPE_POINTS)
+    result['Alpha_Flag'] = [df['Alpha_Flag'].iloc[0]]
+    result['Alpha'] = [slope]
+    return result
+
+def calc_d_mean_alpha(df):
+    """
+    Calculate the mean diffusion coefficient (D) for each alpha class.
+    Parameters:
+        df (pd.DataFrame): Input DataFrame containing the diffusion coefficients and alpha classes.
+    Returns:
+        pd.DataFrame: A DataFrame with the mean diffusion coefficient for each alpha class.
+        two columns are returned:
+            - 'D_Mean_Alpha': The mean diffusion coefficient for an alpha class.
+            - 'D_Mean_Alpha_error': The error associated with the diffusion coefficient.
+    """
+    alpha = df['Alpha_Mean'].iloc[0]
+
+    def fixed_alpha_anom_diffusion_msd(t, d):
+        """
+        Calculate the mean squared displacement for anomalous diffusion in 2D
+        with a fixed alpha value.
+        Parameters:
+            t (float): Time lag.
+            d (float): Diffusion coefficient.
+        Returns:
+            float: The mean squared displacement for the given time lag and diffusion coefficient.
+        """
+        return 4 * d * t**alpha
+
+    # Check if the DataFrame is empty. I don't know why this is necessary but curve_fit
+    # throws an error that ydata is empty if this is not done.
+    if len(df) == 0:
+        return df
+
+    ydata = df["MSD"].dropna().values
+    xdata = df["Lag_T"].dropna().values
+
+    # fit the MSD to a line
+    popt, pcov = curve_fit(fixed_alpha_anom_diffusion_msd, xdata, ydata)
+    d_coefficient = popt[0]
+    d_error = np.sqrt(np.diag(pcov))[0]
+    # add the d coefficient to the dataframe
+    df["D_Mean_Alpha"] = d_coefficient
+    df["D_Mean_Alpha_error"] = d_error
+
+    return df
+
+def calc_d_fix_alpha(df):
+    """
+    Calculate the diffusion coefficient (D) while keeping the alpha fixed from 
+    the 'Alpha' column.
+    Parameters:
+        df (pd.DataFrame): Input DataFrame containing the diffusion coefficients and alpha classes.
+    Returns:
+        pd.DataFrame: A DataFrame with the diffusion coefficient for each alpha.
+        two new columns are added:
+            - 'D_Fixed_Alpha': The calculated diffusion coefficient.
+            - 'D_Fixed_Alpha_error': The error associated with the diffusion coefficient.
+    """
+    alpha = df['Alpha'].iloc[0]
+
+    def fixed_alpha_anom_diffusion_msd(t, d):
+        """
+        Calculate the mean squared displacement for anomalous diffusion in 2D
+        with a fixed alpha value.
+        Parameters:
+            t (float): Time lag.
+            d (float): Diffusion coefficient.
+        Returns:
+            float: The mean squared displacement for the given time lag and diffusion coefficient.
+        """
+        return 4 * d * t**alpha
+
+    # Check if the DataFrame is empty. I don't know why this is necessary but curve_fit
+    # throws an error that ydata is empty if this is not done.
+    if len(df) == 0:
+        return df
+
+    ydata = df["MSD"].dropna().values
+    xdata = df["Lag_T"].dropna().values
+
+    # fit the MSD to a line
+    popt, pcov = curve_fit(fixed_alpha_anom_diffusion_msd, xdata, ydata)
+    d_coefficient = popt[0]
+    d_error = np.sqrt(np.diag(pcov))[0]
+    # add the d coefficient to the dataframe
+    df["D_Fixed_Alpha"] = d_coefficient
+    df["D_Fixed_Alpha_error"] = d_error
+    
+    return df
+
