@@ -123,6 +123,19 @@ for uid, group in df.groupby('UID'):
         opacity=10/len(df['UID'].unique()) # 10 is just a number so for my testing set with 321 UIDs, this gives ∼0.05 opacity
         )
 
+    # Add three plots for different alpha values from alphas DataFrame
+    for alpha_flag, alpha_value in alphas.items():
+        color = 'green' if alpha_flag == 'normal' else 'blue' if alpha_flag == 'sub' else 'red' if alpha_flag == 'sup' else 'grey'
+        msd_trend = np.array(range(1, 7)) ** alpha_value  # Assuming the first 6 points are used for MSD
+        fig.add_scatter(
+            x=group['Lag_T'].iloc[0:6],
+            y=msd_trend,
+            mode='lines',
+            name=f'{alpha_flag} (Alpha={alpha_value:.2f})',
+            line=dict(color=color, width=2),
+            opacity=1
+        )
+
 fig.update_layout(
     xaxis_title='Lag Time (s)',
     yaxis_title='Mean Squared Displacement (MSD)',
@@ -132,7 +145,8 @@ fig.update_layout(
     # xaxis_range=[0.01, 0.2],
     # yaxis_range=[0.01, 2.5],
     xaxis_type='log',
-    yaxis_type='log'
+    yaxis_type='log', 
+    showlegend=False
 )
 
 fig.show()
@@ -279,27 +293,27 @@ fig.show()
 
 # %%
 # Plot a histogram of the 'D' column
-column_name = 'D_Fixed_Alpha'
+column_name = 'D_Mean_Alpha'
 grouped_df = df.groupby('UID')[column_name].first().reset_index()
-grouped_df = grouped_df[(grouped_df[column_name] < 10) & (grouped_df[column_name] > 0.1)]
-fig = px.histogram(x=grouped_df[column_name], nbins=50)
+grouped_df = grouped_df[(grouped_df[column_name] < 2) & (grouped_df[column_name] > 0.001)]
+fig = px.histogram(x=grouped_df[column_name], nbins=500)
 fig.update_layout(
     xaxis_title='Diffusion Coefficient µm²/s',
     yaxis_title='Count',
-    bargap=0.01,
+    # bargap=0.01,
     paper_bgcolor='rgba(255, 255, 255, 0.90)',
     plot_bgcolor='rgba(60, 60, 60, 0.44)',
     # xaxis_type='log'
 )
 fig.show()
 # %%
-grouped_df = df.groupby('UID')[['D_Fixed_Alpha', 'Alpha', 'Alpha_Flag']].first().reset_index()
+grouped_df = df.groupby('UID')[['D_Mean_Alpha', 'Alpha', 'Alpha_Flag']].first().reset_index()
 fig = px.scatter(
     grouped_df, 
-    x='D_Fixed_Alpha', 
-    y='Alpha', 
+    x='Alpha', 
+    y='D_Mean_Alpha', 
     title='Diffusion Coefficient vs Alpha',
-    labels={'D_Fixed_Alpha': 'Diffusion Coefficient (µm²/s)', 'Alpha': 'Alpha'},
+    labels={'D_Mean_Alpha': 'Diffusion Coefficient (µm²/s)', 'Alpha': 'Alpha'},
     color='Alpha_Flag',
     color_discrete_map={
         'ignore': 'black',
