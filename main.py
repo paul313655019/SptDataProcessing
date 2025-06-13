@@ -5,7 +5,6 @@ import numpy as np
 import plotly.express as px
 import importlib
 
-
 import util.data_preprocessing as dpp
 import util.analysis_functions as nlss
 import util.look_and_feel as laf
@@ -28,7 +27,7 @@ df.head(20)
 # Calculate the diffusion coefficient
 df = df.groupby('UID').apply(nlss.calculate_msd).reset_index(drop=True)
 
-df = df.groupby('UID').apply(nlss.flag_alpha2).reset_index(drop=True)
+df = df.groupby('UID').apply(nlss.flag_alpha_by_fit).reset_index(drop=True)
 
 alphas = (
     df.groupby('UID')[['MSD', 'Alpha_Flag']].apply(nlss.alpha_classes)
@@ -293,27 +292,25 @@ fig.show()
 
 # %%
 # Plot a histogram of the 'D' column
-column_name = 'D_Mean_Alpha'
+column_name = 'D_Fixed_Alpha'
 grouped_df = df.groupby('UID')[column_name].first().reset_index()
-grouped_df = grouped_df[(grouped_df[column_name] < 2) & (grouped_df[column_name] > 0.001)]
-fig = px.histogram(x=grouped_df[column_name], nbins=500)
+grouped_df = grouped_df[(grouped_df[column_name] < 5) & (grouped_df[column_name] > 0.07)]
+fig = px.histogram(x=grouped_df[column_name], nbins=50)
 fig.update_layout(
     xaxis_title='Diffusion Coefficient µm²/s',
     yaxis_title='Count',
-    # bargap=0.01,
-    paper_bgcolor='rgba(255, 255, 255, 0.90)',
-    plot_bgcolor='rgba(60, 60, 60, 0.44)',
+    bargap=0.01,
+    paper_bgcolor='rgb(255, 255, 255)',
+    plot_bgcolor='rgb(220, 220, 220)',
     # xaxis_type='log'
 )
 fig.show()
 # %%
-grouped_df = df.groupby('UID')[['D_Mean_Alpha', 'Alpha', 'Alpha_Flag']].first().reset_index()
+grouped_df = df.groupby('UID')[['D_Fixed_Alpha', 'Alpha', 'Alpha_Flag']].first().reset_index()
 fig = px.scatter(
     grouped_df, 
     x='Alpha', 
-    y='D_Mean_Alpha', 
-    title='Diffusion Coefficient vs Alpha',
-    labels={'D_Mean_Alpha': 'Diffusion Coefficient (µm²/s)', 'Alpha': 'Alpha'},
+    y='D_Fixed_Alpha', 
     color='Alpha_Flag',
     color_discrete_map={
         'ignore': 'black',
@@ -322,6 +319,14 @@ fig = px.scatter(
         'normal': 'green'
     }
 )
+fig.update_layout(
+    xaxis_title='Alpha',
+    yaxis_title='Diffusion Coefficient (µm²/s)',
+    paper_bgcolor='rgb(255, 255, 255)',
+    plot_bgcolor='rgb(220, 220, 220)',
+    yaxis_range=[-0.5, 6]
+)
 
 fig.show()
+
 # %%

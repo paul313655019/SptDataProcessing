@@ -515,7 +515,7 @@ def fit_jd_3exp_norm(df):
     df["JD3xn_D3_error"] = results.params['b3'].stderr
     return df
 
-def flag_alpha(df):
+def flag_alpha_by_val(df):
     """
     Flag the anomalousness exponent (Alpha) from the normalized 
     MSD plot in log-log scale from one of the first few points.
@@ -546,7 +546,7 @@ def flag_alpha(df):
 
     return df
 
-def flag_alpha2(df):
+def flag_alpha_by_fit(df):
     """
     Flag the anomalousness exponent (Alpha) from the normalized 
     MSD plot in log-log scale through fitting a line to the first few points.
