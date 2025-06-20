@@ -13,3 +13,15 @@ ALPHA_THRESHOLDS = {
 }
 MSD_SLOPE_POINTS = 4  # Number of points to consider for the slope in MSD plot to classify alpha
 MSD_PLOT_POINTS = 6 # Number of points to plot in the MSD plot
+
+# Constants for the confinement analysis
+# log(ψ) = 0.2048 - 2.5117 ⨉ D ⨉ Δt / R²
+# where ψ is the confinement probability, D is the diffusion coefficient, 
+# Δt is the time interval, and R is the radius of confinement
+PROBABILITY_THRESHOLD = 0.1 # Less than 10% particle is in nonrandom motion
+WINDOW_SIZE = 40
+CONFINEMENT_TIME_THRESHOLD = 0.1
+CONFINEMENT_PROBABILITY_LEVEL = 0.1
+MSD_FIT_POINTS = 4  # Number of points to fit the MSD curve for confinement analysis
+CONF_C1 = 0.2048  # Constant for the confinement analysis equation
+CONF_C2 = 2.5117  # Constant for the confinement analysis equation

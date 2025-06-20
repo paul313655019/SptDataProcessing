@@ -4,16 +4,23 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import importlib
+import holoviews as hv
+from holoviews import opts
+from holoviews.selection import link_selections
 
 import util.data_preprocessing as dpp
 import util.analysis_functions as nlss
 import util.look_and_feel as laf
+import util.constants as const
+
+hv.extension('bokeh')  # Initialize Holoviews with Bokeh backend
 
 # %%
 # Reload modules to ensure the latest changes are applied
 importlib.reload(dpp)
 importlib.reload(nlss)
 importlib.reload(laf)
+importlib.reload(const)
 
 # %%
 # Load the CSV files from the specified directory
@@ -328,5 +335,124 @@ fig.update_layout(
 )
 
 fig.show()
+
+#%% 
+# * ====================================
+# * Plot all tracks, to find a long track
+# Filter the data for a specific UID
+good_length = 150
+filtered_df = df.groupby('UID').filter(lambda x: len(x) > good_length)
+# Convert the series into a DataFrame
+filtered_df = filtered_df.reset_index(drop=True)
+
+fig = px.line(filtered_df, x='X', y='Y', color='UID')
+fig = laf.plotly_style_tracks(fig)
+laf.set_plotly_config(fig) # wrapper for fig.show(config=config)
+
+# %%
+# * ====================================
+# * Load the 'good' track for further analysis
+# track = filtered_df[filtered_df['UID'] == 'BMP-TAT-S001-60min-ROI02-1146']
+track = filtered_df[filtered_df['UID'] == 'BMP-TAT-S001-60min-ROI03-0349']
+fig = px.line(track, x='X', y='Y', color='UID')
+fig = laf.plotly_style_tracks(fig)
+laf.set_plotly_config(fig) # wrapper for fig.show(config=config)
+# %%
+track = nlss.calc_confinement_level(track)
+track.info()
+fig = px.line(track, x='Frame', y='Conf_Level', title='Confinement Level vs Frame')
+fig.update_layout(
+    xaxis_title='Frame',
+    yaxis_title='Confinement Level',
+    paper_bgcolor='rgb(255, 255, 255)',
+    plot_bgcolor='rgb(220, 220, 220)'
+)
+laf.set_plotly_config(fig) # wrapper for fig.show(config=config)
+
+# %% # * ====================================
+
+hvds = hv.Dataset(track)
+
+# Create Holoviews objects for the plots
+track_plot = hv.Points(hvds, ["X", "Y"]).opts(
+    title="Track Plot", xlabel="X", ylabel="Y"
+)
+track_plot.opts( #type: ignore
+    backend_opts={"plot.output_backend": "svg"}
+)
+
+conf_level_plot = hv.Scatter(hvds, "Frame", "Conf_Level").opts(
+    title="Confinement Level vs Frame",
+    xlabel="Frame",
+    ylabel="Confinement Level"
+)
+conf_level_plot.opts( #type: ignore
+    backend_opts={"plot.output_backend": "svg"}
+)
+
+ls = hv.link_selections.instance()
+# Link the selections
+ls(track_plot + conf_level_plot, #type: ignore
+    selected_color='#fc4a4a', 
+    unselected_alpha=1, 
+    unselected_color='#5a9d5a'
+)
+
+# %%
+import altair as alt
+from vega_datasets import data
+import vegafusion #noqa
+
+# Enable VegaFusion for server-side transforms
+alt.data_transformers.enable("vegafusion")
+
+selection = alt.selection_interval(encodings=["x", "y"])
+
+# Scatter plot with consistent color by Origin, using opacity for selection
+scatter = (
+    alt.Chart(track.reset_index())
+    .mark_point()
+    .encode(
+        x=alt.X(
+            "X", title="X", scale=alt.Scale(domain=[track["X"].min(), track["X"].max()])
+        ),
+        y=alt.Y(
+            "Y", title="Y", scale=alt.Scale(domain=[track["Y"].min(), track["Y"].max()])
+        ),
+        opacity=alt.condition(selection, alt.value(1.0), alt.value(0.1)),
+    )
+    .add_params(selection)
+    .properties(
+        width=400,
+        height=300,
+    )
+)
+
+# Line plot of Conf_Level against Frame
+line_plot = (
+    alt.Chart(track.reset_index())
+    .mark_line()
+    .encode(
+        x=alt.X(
+            "Frame",
+            title="Frame",
+            scale=alt.Scale(domain=[track["Frame"].min(), track["Frame"].max()]),
+        ),
+        y=alt.Y(
+            "Conf_Level",
+            title="Confinement Level",
+            scale=alt.Scale(
+                domain=[track["Conf_Level"].min(), track["Conf_Level"].max()]
+            ),
+        ),
+        tooltip=["Frame", "Conf_Level"],
+    )
+    .transform_filter(selection)
+    .properties(width=400, height=300)
+)
+
+# Combine scatter and line plot vertically
+chart = scatter & line_plot
+chart.show()
 
 # %%

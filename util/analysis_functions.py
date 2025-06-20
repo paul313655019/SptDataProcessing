@@ -700,3 +700,65 @@ def calc_d_fix_alpha(df):
     
     return df
 
+
+def calc_confinement_level(df):
+    """ Calculate the confinement level for each segment of the trajectory.
+    This function computes the confinement level based on the diffusion coefficient
+    and the maximum displacement of the segment.
+    Parameters:
+        df (pd.DataFrame): Input DataFrame containing the trajectory data with columns 'X' and 'Y'.
+    Returns:
+        pd.DataFrame: A DataFrame with an additional column 'Conf_Level' indicating the confinement level.
+        The confinement level is calculated using the formula:
+        Conf_Level = C1 - C2 * (D * t / R^2)
+    """
+    df.reset_index(drop=True, inplace=True)
+    dt = const.DT
+    window_size = const.WINDOW_SIZE
+    lag_points = const.MSD_FIT_POINTS
+    c1 = const.CONF_C1
+    c2 = const.CONF_C2
+    tw = window_size * dt # Time window in seconds
+    prob_thresh= const.PROBABILITY_THRESHOLD
+
+    df['Conf_Level'] = np.nan  # Initialize the Confinement Level column
+    
+    for i in range(len(df) - window_size + 1):
+        segment = df.iloc[i:i + window_size]
+        
+        r = conf_calc_r(segment)
+
+        msd = conf_calc_msd(lag_points, segment)
+
+        # Fitting to get diffusion coefficient for the segment
+        ydata = pd.Series(msd).dropna().values
+        xdata = np.arange(len(ydata)) * dt
+        popt, pconv = curve_fit(normal_diffusion_msd, xdata, ydata)
+        d = popt[0]  # Diffusion coefficient for the segment
+        
+        log_prob = c1 - c2 * (d * tw / r**2)
+
+        conf_level = -log_prob + np.log10(prob_thresh) if log_prob <= np.log10(prob_thresh) else 0
+
+        df.loc[i:i + window_size - 1, 'Conf_Level'] = conf_level
+    
+    return df
+
+def conf_calc_msd(lag_points, segment):
+    msd = {}
+    for lag in range(1, lag_points + 1):
+        dy = segment['Y'].diff(periods=lag).fillna(0)
+        dx = segment['X'].diff(periods=lag).fillna(0)
+        msd[lag] = (dx**2 + dy**2).mean()
+    return msd
+
+def conf_calc_r(segment):
+    start_x, start_y = segment.iloc[0]['X'], segment.iloc[0]['Y']
+    distances = np.sqrt((segment['X'] - start_x)**2 + (segment['Y'] - start_y)**2)
+        # df.loc[i:i + window_size - 1, 'MW_R'] = distances.max()
+    r= distances.max()
+    return r
+
+def label_confinement(df):
+
+    return df
