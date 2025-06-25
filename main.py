@@ -1,4 +1,4 @@
-# %%
+# %% # MARK: Imports
 from pathlib import Path
 import pandas as pd
 import numpy as np
@@ -15,14 +15,22 @@ import util.constants as const
 
 hv.extension('bokeh')  # Initialize Holoviews with Bokeh backend
 
-# %%
+# * ====================================
+# * Reload modules
 # Reload modules to ensure the latest changes are applied
-importlib.reload(dpp)
-importlib.reload(nlss)
-importlib.reload(laf)
-importlib.reload(const)
+def reload_modules():
+    """Reloads the custom modules to ensure the latest changes are applied.
+    """
+    importlib.reload(dpp)
+    importlib.reload(nlss)
+    importlib.reload(laf)
+    importlib.reload(const)
 
-# %%
+# Call the reload function to ensure all modules are up-to-date
+reload_modules()
+
+# %% # * ====================================
+# MARK: Load data
 # Load the CSV files from the specified directory
 data_path = Path(r'F:\Mark SPT\2024.11.04\TrackingResults')
 df = dpp.load_csv_files(data_path)
@@ -336,7 +344,7 @@ fig.update_layout(
 
 fig.show()
 
-#%% 
+#%% # MARK: Find track
 # * ====================================
 # * Plot all tracks, to find a long track
 # Filter the data for a specific UID
@@ -349,7 +357,7 @@ fig = px.line(filtered_df, x='X', y='Y', color='UID')
 fig = laf.plotly_style_tracks(fig)
 laf.set_plotly_config(fig) # wrapper for fig.show(config=config)
 
-# %%
+# %% # MARK: Select track
 # * ====================================
 # * Load the 'good' track for further analysis
 # track = filtered_df[filtered_df['UID'] == 'BMP-TAT-S001-60min-ROI02-1146']
@@ -357,10 +365,14 @@ track = filtered_df[filtered_df['UID'] == 'BMP-TAT-S001-60min-ROI03-0349']
 fig = px.line(track, x='X', y='Y', color='UID')
 fig = laf.plotly_style_tracks(fig)
 laf.set_plotly_config(fig) # wrapper for fig.show(config=config)
-# %%
+# %% # MARK: Confinement 
+# * ====================================
+# * Calculate the confinement level for the track
 track = nlss.calc_confinement_level(track)
-track.info()
-fig = px.line(track, x='Frame', y='Conf_Level', title='Confinement Level vs Frame')
+# track.info()
+# Columns of interest: MW_D, Conf_Level, Frame
+fig = px.line(track, x='Frame', y='Conf_Level', 
+                title=f'Confinement Level vs Frame {const.WINDOW_SIZE} & {const.MSD_FIT_POINTS}')
 fig.update_layout(
     xaxis_title='Frame',
     yaxis_title='Confinement Level',
@@ -369,8 +381,9 @@ fig.update_layout(
 )
 laf.set_plotly_config(fig) # wrapper for fig.show(config=config)
 
-# %% # * ====================================
-
+# %% # MARK: Interactive plots
+# # * ====================================
+# * Interactive plots with Holoviews
 hvds = hv.Dataset(track)
 
 # Create Holoviews objects for the plots
@@ -389,14 +402,69 @@ conf_level_plot = hv.Scatter(hvds, "Frame", "Conf_Level").opts(
 conf_level_plot.opts( #type: ignore
     backend_opts={"plot.output_backend": "svg"}
 )
-
+layout = (track_plot + conf_level_plot) #type: ignore
 ls = hv.link_selections.instance()
 # Link the selections
-ls(track_plot + conf_level_plot, #type: ignore
+ls(layout, #type: ignore
     selected_color='#fc4a4a', 
     unselected_alpha=1, 
     unselected_color='#5a9d5a'
 )
+
+# %% # MARK: Tr_MSD
+# * ====================================
+# * Calculate the Transient MSD
+
+reload_modules()  # Reload modules to ensure the latest changes are applied
+
+track = nlss.calculate_diff_d_moving_window(track)
+# track.info()
+# Columns of interest: MW_D, Conf_Level, Frame
+fig = px.line(
+    track,
+    x="Frame",
+    y="MW_D",
+    title=f"Transient MSD vs Frame {const.TMSD_WINDOW_SIZE} & {const.TMSD_FIT_POINTS}",
+)
+fig.update_layout(
+    xaxis_title="Frame",
+    yaxis_title="Transient MSD",
+    # paper_bgcolor="rgb(255, 255, 255)",
+    # plot_bgcolor="rgb(220, 220, 220)",
+    template="presentation"
+)
+laf.set_plotly_config(fig) # wrapper for fig.show(config=config)
+
+
+# %% # MARK: Interactive plots
+# # * ====================================
+# * Interactive plots with Holoviews
+# Her we plot transient D against Frame
+hvds = hv.Dataset(track)
+svgopts = opts(backend_opts={"plot.output_backend": "svg"})
+
+# Create Holoviews objects for the plots
+track_plot = hv.Points(hvds, ["X", "Y"]).opts(
+    title="Track Plot", xlabel="X", ylabel="Y"
+)
+track_plot.opts(svgopts) #type: ignore
+
+conf_level_plot = hv.Scatter(hvds, "Frame", "MW_D").opts(
+    title="Confinement Level vs Frame",
+    xlabel="Frame",
+    ylabel="Confinement Level"
+)
+conf_level_plot.opts(svgopts) #type: ignore
+
+layout = (track_plot + conf_level_plot) #type: ignore
+ls = hv.link_selections.instance()
+# Link the selections
+ls(layout, #type: ignore
+    selected_color='#fc4a4a', 
+    unselected_alpha=1, 
+    unselected_color='#5a9d5a'
+)
+
 
 # %%
 import altair as alt
@@ -421,6 +489,7 @@ scatter = (
         ),
         opacity=alt.condition(selection, alt.value(1.0), alt.value(0.1)),
     )
+    .interactive()
     .add_params(selection)
     .properties(
         width=400,
@@ -447,6 +516,7 @@ line_plot = (
         ),
         tooltip=["Frame", "Conf_Level"],
     )
+    .interactive()
     .transform_filter(selection)
     .properties(width=400, height=300)
 )
@@ -454,5 +524,4 @@ line_plot = (
 # Combine scatter and line plot vertically
 chart = scatter & line_plot
 chart.show()
-
 # %%

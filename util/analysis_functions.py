@@ -711,6 +711,9 @@ def calc_confinement_level(df):
         pd.DataFrame: A DataFrame with an additional column 'Conf_Level' indicating the confinement level.
         The confinement level is calculated using the formula:
         Conf_Level = C1 - C2 * (D * t / R^2)
+        t: time window determined by the window size of the segment and dt.
+        R: maximum displacement in the segment.
+        D: diffusion coefficient for the entire trajectory (not the segment).
     """
     df.reset_index(drop=True, inplace=True)
     dt = const.DT
@@ -722,37 +725,55 @@ def calc_confinement_level(df):
     prob_thresh= const.PROBABILITY_THRESHOLD
 
     df['Conf_Level'] = np.nan  # Initialize the Confinement Level column
+
+    msd = conf_calc_msd(lag_points, df)
+
+    # Fitting to get diffusion coefficient for the segment
+    ydata = pd.Series(msd).dropna().values
+    xdata = np.arange(len(ydata)) * dt
+    popt, pconv = curve_fit(normal_diffusion_msd, xdata, ydata)
+    d = popt[0]  # Diffusion coefficient for the segment
     
     for i in range(len(df) - window_size + 1):
         segment = df.iloc[i:i + window_size]
         
         r = conf_calc_r(segment)
-
-        msd = conf_calc_msd(lag_points, segment)
-
-        # Fitting to get diffusion coefficient for the segment
-        ydata = pd.Series(msd).dropna().values
-        xdata = np.arange(len(ydata)) * dt
-        popt, pconv = curve_fit(normal_diffusion_msd, xdata, ydata)
-        d = popt[0]  # Diffusion coefficient for the segment
         
         log_prob = c1 - c2 * (d * tw / r**2)
 
         conf_level = -log_prob + np.log10(prob_thresh) if log_prob <= np.log10(prob_thresh) else 0
 
-        df.loc[i:i + window_size - 1, 'Conf_Level'] = conf_level
-    
+        df.iloc[i:i + window_size - 1, df.columns.get_loc('Conf_Level')] = conf_level
+
+
     return df
 
-def conf_calc_msd(lag_points, segment):
+def conf_calc_msd(lag_points, df):
+    '''
+    Calculate the Mean Squared Displacement (MSD) for the whole trajectory (not the segment).
+    It calculates the MSD for each lag point from 1 to lag_points.
+    Parameters:
+        lag_points (int): The number of lag points to consider.
+        df (pd.DataFrame): The DataFrame containing the trajectory data.
+    Returns:
+        dict: A dictionary with lag points as keys and their corresponding MSD values.
+    '''
     msd = {}
     for lag in range(1, lag_points + 1):
-        dy = segment['Y'].diff(periods=lag).fillna(0)
-        dx = segment['X'].diff(periods=lag).fillna(0)
+        dy = df['Y'].diff(periods=lag).fillna(0)
+        dx = df['X'].diff(periods=lag).fillna(0)
         msd[lag] = (dx**2 + dy**2).mean()
     return msd
 
 def conf_calc_r(segment):
+    '''
+    Calculate the maximum displacement (R) for a segment of the trajectory.
+    The maximum displacement is calculated as the Euclidean distance from the first point in the segment.
+    Parameters:
+        segment (pd.DataFrame): The DataFrame containing the segment of the trajectory.
+    Returns:
+        float: The maximum displacement (R) for the segment.
+    '''
     start_x, start_y = segment.iloc[0]['X'], segment.iloc[0]['Y']
     distances = np.sqrt((segment['X'] - start_x)**2 + (segment['Y'] - start_y)**2)
         # df.loc[i:i + window_size - 1, 'MW_R'] = distances.max()
@@ -760,5 +781,62 @@ def conf_calc_r(segment):
     return r
 
 def label_confinement(df):
+    '''
+    TO BE IMPLEMENTED
+    Label the points in a trajectory as confined or not confined based on the confinement level
+    or other metrics.
+    This function will add a new column 'Conf_Label' to the DataFrame, where each
+    point is labeled as 'confined' or 'not confined'.
+    '''
+    return df
+
+def calculate_diff_d_moving_window(df):
+    """
+    Calculate diffusion coeffiecients using a moving window approach.
+
+    The moving windo is defined by the constants in the constants.py file.
+    here is skipping length and window length. 
+    Which are how many points to skip and how large is the window.
+    and the diffusion coefficient is calculated
+    Parameters:
+        df (pandas.DataFrame): DataFrame containing the trajectory data with columns 'X' and 'Y'.
+    Returns:
+        pandas.DataFrame: DataFrame containing the diffusion coefficient results with columns 'MW_D' and 'MW_D_error'.
+    """
+
+    # df is verified to be larger than window length during the mutation process
+    # so no need to check here again.
+    df.reset_index(drop=True, inplace=True)
+    dt = const.DT
+    window = const.TMSD_WINDOW_SIZE
+    lag_points = const.TMSD_FIT_POINTS
+    # create the columns for the diffusion coefficient and error and fill with NaN values
+    df.loc[:, "MW_D"] = np.nan
+
+    # Loop through the DataFrame with a moving window
+    for i in range(len(df) - window + 1):
+        # Select the window of data
+        window_df = df.iloc[i : i + window]
+
+        # Calculate the MSD for the window
+        msd_results = {}
+        for lag in range(1, lag_points + 1):
+            dy = window_df["Y"].diff(periods=lag).dropna()
+            dx = window_df["X"].diff(periods=lag).dropna()
+            displacement_sqr = dx**2 + dy**2
+            msd_results[lag] = displacement_sqr.mean()
+
+        # Fit the MSD to a line and calculate the diffusion coefficient
+        ydata = pd.Series(msd_results).dropna().values
+        xdata = np.arange(len(ydata)) * dt
+
+        try:
+            popt, pcov = curve_fit(normal_diffusion_msd, xdata, ydata)
+            d_coefficient = popt[0]
+        except (ValueError, RuntimeError):
+            d_coefficient = np.nan
+
+        # Assign the diffusion coefficient to the corresponding rows in the DataFrame
+        df.iloc[i : i + window - 1, df.columns.get_loc("MW_D")] = d_coefficient
 
     return df
