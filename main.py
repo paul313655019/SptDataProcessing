@@ -13,7 +13,7 @@ import util.analysis_functions as nlss
 import util.look_and_feel as laf
 import util.constants as const
 
-hv.extension('bokeh')  # Initialize Holoviews with Bokeh backend
+hv.extension('bokeh') #type: ignore
 
 # * ====================================
 # * Reload modules
