@@ -37,7 +37,15 @@ df = dpp.load_csv_files(data_path)
 
 df.info()
 df.head(20)
-
+#
+#
+#
+# %% # * ====================================
+# MARK: Save Data
+df.to_parquet(data_path / 'tracking_results.parquet', index=False)
+#
+#
+#
 # %%
 # Calculate the diffusion coefficient
 df = df.groupby('UID').apply(nlss.calculate_msd).reset_index(drop=True)
@@ -374,10 +382,23 @@ track = nlss.calc_confinement_level(track)
 fig = px.line(track, x='Frame', y='Conf_Level', 
                 title=f'Confinement Level vs Frame {const.WINDOW_SIZE} & {const.MSD_FIT_POINTS}')
 fig.update_layout(
-    xaxis_title='Frame',
-    yaxis_title='Confinement Level',
-    paper_bgcolor='rgb(255, 255, 255)',
-    plot_bgcolor='rgb(220, 220, 220)'
+    template='plotly_white', 
+    xaxis=dict(
+        title='Frame',
+        showline=True,      # Show axis line
+        showgrid=True,      # Show grid lines
+        showticklabels=True,
+        linecolor='black',
+        ticks='inside', 
+    ),
+    yaxis=dict(
+        title='Confinement Level',
+        showline=True,
+        showgrid=True,
+        showticklabels=True,
+        linecolor='black',
+        ticks='inside',
+    )
 )
 laf.set_plotly_config(fig) # wrapper for fig.show(config=config)
 
@@ -410,7 +431,9 @@ ls(layout, #type: ignore
     unselected_alpha=1, 
     unselected_color='#5a9d5a'
 )
-
+#
+#
+#
 # %% # MARK: Tr_MSD
 # * ====================================
 # * Calculate the Transient MSD
@@ -434,7 +457,9 @@ fig.update_layout(
     template="presentation"
 )
 laf.set_plotly_config(fig) # wrapper for fig.show(config=config)
-
+#
+#
+#
 
 # %% # MARK: Interactive plots
 # # * ====================================
@@ -469,6 +494,7 @@ ls(layout, #type: ignore
 # %%
 import altair as alt
 from vega_datasets import data
+from plotly.subplots import make_subplots
 import vegafusion #noqa
 
 # Enable VegaFusion for server-side transforms

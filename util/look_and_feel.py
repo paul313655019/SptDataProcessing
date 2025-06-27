@@ -40,7 +40,7 @@ def set_plotly_config(fig):
             'scale': 1,
             'format': 'svg',
             'filename': 'figure',
-            'width': 600,
+            'width': 800,
             'height': 600
         }
     }
