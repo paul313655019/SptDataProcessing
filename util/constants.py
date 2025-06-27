@@ -28,3 +28,7 @@ CONF_C2 = 2.5117  # Constant for the confinement analysis equation
 
 TMSD_WINDOW_SIZE = 40  # Window size for transient MSD calculation
 TMSD_FIT_POINTS = 4  # Number of points to fit the TMSD curve
+
+# I find this through trial and error. This divided by the number of 
+# trajectories gives the opacity value for the plot
+OPACITY_PARAM = 16 

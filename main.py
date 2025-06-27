@@ -28,7 +28,9 @@ def reload_modules():
 
 # Call the reload function to ensure all modules are up-to-date
 reload_modules()
-
+#
+#
+#
 # %% # * ====================================
 # MARK: Load data
 # Load the CSV files from the specified directory
@@ -46,8 +48,11 @@ df.to_parquet(data_path / 'tracking_results.parquet', index=False)
 #
 #
 #
-# %%
-# Calculate the diffusion coefficient
+#
+#
+# %% # * ====================================
+# MARK: Data Preprocessing
+# All the analysis are done in this section
 df = df.groupby('UID').apply(nlss.calculate_msd).reset_index(drop=True)
 
 df = df.groupby('UID').apply(nlss.flag_alpha_by_fit).reset_index(drop=True)
@@ -69,19 +74,26 @@ df = df.groupby('UID').apply(nlss.fit_jd_1exp_norm).reset_index(drop=True)
 df = df.groupby('UID').apply(nlss.fit_jd_2exp_norm).reset_index(drop=True)
 df.info()
 df.head()
-
-# %%
+#
+#
+#
+# %% # * ====================================
+# filter the trajectories based on the diffusion coefficient
 # Filter the data for a specific FileID
 file_ids = df['FileID'].unique()
 filtered_df = df[df['FileID'] == file_ids[0]]
 filtered_df = filtered_df[filtered_df['D'] > 0.09]
 # filtered_df = filtered_df[filtered_df['D'] > 0.7]
 
+# Plot the filtered trajectories
 fig = px.line(filtered_df, x='X', y='Y', color='TrackID')
 fig = laf.plotly_style_tracks(fig)
 config = {'toImageButtonOptions': {'scale': 4}}
 fig.show(config=config)
-# %%
+#
+#
+#
+# %% # * ====================================
 # Plot a histogram of the 'D' column
 grouped_df = df.groupby('UID')['D'].first().reset_index()
 grouped_df = grouped_df[grouped_df['D'] > 0.1]
@@ -95,8 +107,10 @@ fig.update_layout(
 )
 fig.show()
 
-# %%
+# %% # * ====================================
 # Plot MSD vs Lag_T for each FileID and TrackID
+# MSDs are normalized by the first MSD value for each UID
+# This is to compare the MSDs across all the trajectories
 fig = px.line()
 
 for uid, group in df.groupby('UID'):
@@ -106,7 +120,7 @@ for uid, group in df.groupby('UID'):
         mode='lines', 
         name=uid,
         line=dict(color='blue', width=1),
-        opacity=16/len(df['UID'].unique()) # 16 is just a number so for my testing set with 321 UIDs, this gives ∼0.05 opacity
+        opacity=const.OPACITY_PARAM/len(df['UID'].unique()) # 16 is just a number so for my testing set with 321 UIDs, this gives ∼0.05 opacity
         )
 
 fig.update_layout(
@@ -122,7 +136,10 @@ fig.update_layout(
 )
 
 fig.show()
-# %%
+#
+#
+#
+# %% # * ====================================
 # Plot MSD vs Lag_T for each FileID and TrackID
 # Color from the alpha flag
 fig = px.line()
@@ -172,8 +189,10 @@ fig.update_layout(
 )
 
 fig.show()
-
-# %%
+#
+#
+#
+# %% # * ====================================
 # Plot JD_Freq against JD_bin_centers for one of the UID in the df
 uid_to_plot = df['UID'].unique()[4]
 jd_data = df[df['UID'] == uid_to_plot]
@@ -190,8 +209,10 @@ fig.update_layout(
     plot_bgcolor='rgb(255, 255, 255)'
 )
 fig.show()
-
-# %%
+#
+#
+#
+# %% # * ====================================
 # Plot a histogram of the 'D' column
 grouped_df = df.groupby('UID')['JD1xn_D'].first().reset_index()
 grouped_df = grouped_df[(grouped_df['JD1xn_D'] < 1.5) & (grouped_df['JD1xn_D'] > 0.1)]
@@ -205,8 +226,8 @@ fig.update_layout(
 )
 fig.show()
 
-# %%
-# Plot a histogram of the 'D' column
+# %% # * ====================================
+# Plot a histogram of the '𝛂' column
 grouped_df = df.groupby('UID')['JD1x_Alpha'].first().reset_index()
 grouped_df = grouped_df[(grouped_df['JD1x_D'] < 1.1) & (grouped_df['JD1x_D'] > 0.1)]
 fig = px.histogram(x=grouped_df['JD1x_Alpha'], nbins=100)
@@ -218,8 +239,10 @@ fig.update_layout(
     plot_bgcolor='rgba(60, 60, 60, 0.44)'
 )
 fig.show()
-
-# %%
+#
+#
+#
+# %% # * ====================================
 # Plot JD_Freq against JD_bin_centers for one of the UID in the df
 uid_to_plot = df['UID'].unique()[15]
 jd_data = df[df['UID'] == uid_to_plot]
@@ -236,10 +259,10 @@ fig.update_layout(
 )
 
 fig.show()
-
-
-
-# %%
+#
+#
+#
+# %% # * ====================================
 # Plot JD_Freq against JD_bin_centers for one of the UID in the df
 uid_to_plot = df['UID'].unique()[15]
 jd_data = df[df['UID'] == uid_to_plot]
@@ -261,7 +284,10 @@ fig.update_layout(
 )
 
 fig.show()
-# %%
+#
+#
+#
+# %% # * ====================================
 # Plot JD_Freq against JD_bin_centers for one of the UID in the df
 uid_to_plot = df['UID'].unique()[300]
 jd_data = df[df['UID'] == uid_to_plot]
@@ -285,7 +311,10 @@ fig.update_layout(
 )
 
 fig.show()
-# %%
+#
+#
+#
+# %%# * ====================================
 # Plot a histogram of the 'D' column
 grouped_df = df.groupby('UID')['JD2xn_D2'].first().reset_index()
 grouped_df = grouped_df[(grouped_df['JD2xn_D2'] < 2) & (grouped_df['JD2xn_D2'] > 0.1)]
@@ -299,7 +328,7 @@ fig.update_layout(
 )
 fig.show()
 
-# %%
+# %% # * ====================================
 # Plot a histogram of the 'D' column
 grouped_df = df.groupby('UID')['JD2x_Alpha2'].first().reset_index()
 grouped_df = grouped_df[(grouped_df['JD2x_Alpha2'] < 2) & (grouped_df['JD2x_Alpha2'] > 0)]
@@ -312,8 +341,10 @@ fig.update_layout(
     plot_bgcolor='rgba(60, 60, 60, 0.44)'
 )
 fig.show()
-
-# %%
+#
+#
+#
+# %% # * ====================================
 # Plot a histogram of the 'D' column
 column_name = 'D_Fixed_Alpha'
 grouped_df = df.groupby('UID')[column_name].first().reset_index()
@@ -328,7 +359,11 @@ fig.update_layout(
     # xaxis_type='log'
 )
 fig.show()
-# %%
+#
+#
+#
+# %% # * ====================================
+# Plot a scatter plot of D_Fixed_Alpha vs Alpha
 grouped_df = df.groupby('UID')[['D_Fixed_Alpha', 'Alpha', 'Alpha_Flag']].first().reset_index()
 fig = px.scatter(
     grouped_df, 
@@ -351,7 +386,9 @@ fig.update_layout(
 )
 
 fig.show()
-
+#
+#
+#
 #%% # MARK: Find track
 # * ====================================
 # * Plot all tracks, to find a long track
@@ -364,7 +401,9 @@ filtered_df = filtered_df.reset_index(drop=True)
 fig = px.line(filtered_df, x='X', y='Y', color='UID')
 fig = laf.plotly_style_tracks(fig)
 laf.set_plotly_config(fig) # wrapper for fig.show(config=config)
-
+#
+#
+#
 # %% # MARK: Select track
 # * ====================================
 # * Load the 'good' track for further analysis
@@ -373,6 +412,9 @@ track = filtered_df[filtered_df['UID'] == 'BMP-TAT-S001-60min-ROI03-0349']
 fig = px.line(track, x='X', y='Y', color='UID')
 fig = laf.plotly_style_tracks(fig)
 laf.set_plotly_config(fig) # wrapper for fig.show(config=config)
+#
+#
+#
 # %% # MARK: Confinement 
 # * ====================================
 # * Calculate the confinement level for the track
@@ -401,7 +443,9 @@ fig.update_layout(
     )
 )
 laf.set_plotly_config(fig) # wrapper for fig.show(config=config)
-
+#
+#
+#
 # %% # MARK: Interactive plots
 # # * ====================================
 # * Interactive plots with Holoviews
@@ -489,12 +533,13 @@ ls(layout, #type: ignore
     unselected_alpha=1, 
     unselected_color='#5a9d5a'
 )
-
+#
+#
+#
 
 # %%
 import altair as alt
 from vega_datasets import data
-from plotly.subplots import make_subplots
 import vegafusion #noqa
 
 # Enable VegaFusion for server-side transforms
