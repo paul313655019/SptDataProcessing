@@ -70,6 +70,14 @@ def anomalous_diffusion_msd(t, d, a):
 def calculate_diff_d(df) -> pd.DataFrame:
     """
     Calculate the normal diffusion coefficient for a given DataFrame.
+    The **MSD** and **Lag_T** columns are used to calculate the diffusion coefficient.
+    
+    Parameters:
+        df["MSD"] (float): Mean Squared Displacement.
+        df["Lag_T"] (float): Lag time.
+    Returns:
+        pandas.DataFrame: DataFrame containing the diffusion coefficient and its error.
+        Two new columns are added to the DataFrame: **D_Norm** and **D_Norm_error**.
     """
     # Check if the DataFrame is empty. I don't know why this is necessary but curve_fit
     # throws an error that ydata is empty if this is not done.
@@ -92,6 +100,16 @@ def calculate_diff_d(df) -> pd.DataFrame:
 def calculate_anom_diff_coef(df) -> pd.DataFrame:
     """
     Calculate the anomalous diffusion coefficient and anomalous exponent for a given DataFrame.
+    **MSD** and **Lag_T** columns are used to calculate the diffusion coefficient and 
+    anomalous exponent.
+
+    Parameters:
+        df["MSD"] (float): Mean Squared Displacement.
+        df["Lag_T"] (float): Lag time.
+    Returns:
+        pandas.DataFrame: DataFrame containing the anomalous diffusion parameters.
+        Two new columns are added to the DataFrame: **D_Anom** and **a_Anom**.
+        
     """
     # Check if the DataFrame is empty. I don't know why this is necessary but curve_fit
     # throws an error that ydata is empty if this is not done.
@@ -108,33 +126,6 @@ def calculate_anom_diff_coef(df) -> pd.DataFrame:
     df["D_Anom"] = popt[0]
     df["a_Anom"] = popt[1]
 
-    return df
-
-def add_msd_column(df):
-    """
-    create new dataframe with the addition of the MSD and lag time columns to the input DataFrame.
-    """
-    msd_df = df.groupby('UID').apply(calculate_msd).reset_index(drop=True)
-
-    result_df = pd.DataFrame()
-
-    for uid in df['UID'].unique():
-        temp = df[df['UID'] == uid].reset_index(drop=True)
-        temp['MSD'] = msd_df[msd_df['UID'] == uid]['MSD'].reset_index(drop=True)
-        temp['Lag_T'] = msd_df[msd_df['UID'] == uid]['Lag_T'].reset_index(drop=True)
-        result_df = pd.concat([result_df, temp], ignore_index=True)
-    return result_df
-# This is the original code from main.py
-# that I used to add the MSD and Lag_T columns to the DataFrame.
-# but it is now included in the calculate_diff_d function.
-# df = analysis.add_msd_column(df_raw)
-
-# df.info()
-
-
-def calculate_distance(df):
-    df['Dist'] = np.sqrt((df['X'] - df['X'].shift())**2 + (df['Y'] - df['Y'].shift())**2)
-    df['Dist'] = df['Dist'].fillna(0)  # Fill NaN values with 0 for the first element
     return df
 
 
@@ -254,10 +245,10 @@ def calculate_jd(df, bin_size=0.02):
     The distances are then binned into intervals of size `bin_size`.
     The cumulative sum of the histogram is normalized to create a cumulative distribution function (CDF).
     Parameters:
-        df (pandas.DataFrame): DataFrame containing the trajectory data with columns 'X' and 'Y'.
+        df (pandas.DataFrame): DataFrame containing the trajectory data with columns **X** and **Y**.
         bin_size (float): Size of the bins for the histogram.
     Returns:
-        pandas.DataFrame: DataFrame containing the JD results with columns 'JD_Freq' and 'JD_Bin_Center'.
+        pandas.DataFrame: DataFrame containing the JD results with columns **JD_Freq** and **JD_Bin_Center**.
     """
     dist = np.sqrt((df['X'] - df['X'].shift())**2 + (df['Y'] - df['Y'].shift())**2)
     dist = dist.fillna(0)  # Fill NaN values with 0 for the first element
@@ -279,11 +270,18 @@ def calculate_jd(df, bin_size=0.02):
 
 def fit_jd_1exp(df):
     """
-    Fit the Jump Distance data to a single exponential model.
+    Fit the Jump Distance data to a single exponential model with D and alpha.
+
+    The dataframe should already contain **JD_Freq** and **JD_Bin_Center** columns.
+    This function fits the Jump Distance data to a single exponential model.
+    
     Parameters:
-        df (pandas.DataFrame): DataFrame containing the Jump Distance data with columns 'JD_Freq' and 'JD_Bin_Center'.
+        df (pandas.DataFrame): DataFrame containing the Jump Distance 
+            data with columns **JD_Freq** and **JD_Bin_Center**.
     Returns:
         pandas.DataFrame: DataFrame containing the fitted parameters and their errors.
+        It will add the new columns **JD1x_D**, **JD1x_D_error**,
+        **JD1x_Alpha**, and **JD1x_Alpha_error** to the DataFrame.
     """
     # Check if the DataFrame is empty. I don't know why this is necessary but curve_fit
     # throws an error that ydata is empty if this is not done.
@@ -308,9 +306,11 @@ def fit_jd_1exp_norm(df):
     """
     Fit the Jump Distance data to a single exponential model for normal diffusion.
     Parameters:
-        df (pandas.DataFrame): DataFrame containing the Jump Distance data with columns 'JD_Freq' and 'JD_Bin_Center'.
+        df (pandas.DataFrame): DataFrame containing the Jump Distance 
+            data with columns **JD_Freq** and **JD_Bin_Center**.
     Returns:
         pandas.DataFrame: DataFrame containing the fitted parameters and their errors.
+            It will add the new columns **JD1xn_D** and **JD1xn_D_error** to the DataFrame.
     """
     # Check if the DataFrame is empty. I don't know why this is necessary but curve_fit
     # throws an error that ydata is empty if this is not done.
@@ -333,9 +333,14 @@ def fit_jd_2exp(df):
     """
     Fit the Jump Distance data to a double exponential model.
     Parameters:
-        df (pandas.DataFrame): DataFrame containing the Jump Distance data with columns 'JD_Freq' and 'JD_Bin_Center'.
+        df (pandas.DataFrame): DataFrame containing the Jump 
+            Distance data with columns 'JD_Freq' and 'JD_Bin_Center'.
     Returns:
         pandas.DataFrame: DataFrame containing the fitted parameters and their errors.
+        It will add the new columns **JD2x_a1**, **JD2x_a1_error**,
+        **JD2x_a2**, **JD2x_a2_error**, **JD2x_D1**, **JD2x_D1_error**,
+        **JD2x_D2**, **JD2x_D2_error**, **JD2x_Alpha1**, **JD2x_Alpha1_error**,
+        **JD2x_Alpha2**, and **JD2x_Alpha2_error**
     """
     # Check if the DataFrame is empty. I don't know why this is necessary but curve_fit
     # throws an error that ydata is empty if this is not done.
@@ -377,9 +382,13 @@ def fit_jd_2exp_norm(df):
     """
     Fit the Jump Distance data to a double exponential model for normal diffusion.
     Parameters:
-        df (pandas.DataFrame): DataFrame containing the Jump Distance data with columns 'JD_Freq' and 'JD_Bin_Center'.
+        df (pandas.DataFrame): DataFrame containing the Jump
+            Distance data with columns **JD_Freq** and **JD_Bin_Center**.
     Returns:
         pandas.DataFrame: DataFrame containing the fitted parameters and their errors.
+            It will add the new columns **JD2xn_a1**, **JD2xn_a1_error**,
+            **JD2xn_a2**, **JD2xn_a2_error**, **JD2xn_D1**, **JD2xn_D1_error**,
+            **JD2xn_D2**, and **JD2xn_D2_error**.
     """
     # Check if the DataFrame is empty. I don't know why this is necessary but curve_fit
     # throws an error that ydata is empty if this is not done.
@@ -416,9 +425,15 @@ def fit_jd_3exp(df):
     """
     Fit the Jump Distance data to a three exponential model.
     Parameters:
-        df (pandas.DataFrame): DataFrame containing the Jump Distance data with columns 'JD_Freq' and 'JD_Bin_Center'.
+        df (pandas.DataFrame): DataFrame containing the Jump
+            Distance data with columns **JD_Freq** and **JD_Bin_Center**.
     Returns:
         pandas.DataFrame: DataFrame containing the fitted parameters and their errors.
+        It will add the new columns **JD3x_a1**, **JD3x_a1_error**,
+        **JD3x_a2**, **JD3x_a2_error**, **JD3x_a3**, **JD3x_a3_error**,
+        **JD3x_D1**, **JD3x_D1_error**, **JD3x_D2**, **JD3x_D2_error**,
+        **JD3x_D3**, **JD3x_D3_error**, **JD3x_Alpha1**, **JD3x_Alpha1_error**,
+        **JD3x_Alpha2**, **JD3x_Alpha2_error**, **JD3x_Alpha3**, and **JD3x_Alpha3_error**.
     """
     # Check if the DataFrame is empty. I don't know why this is necessary but curve_fit
     # throws an error that ydata is empty if this is not done.
@@ -472,9 +487,15 @@ def fit_jd_3exp_norm(df):
     """
     Fit the Jump Distance data to a three exponential model for normal diffusion.
     Parameters:
-        df (pandas.DataFrame): DataFrame containing the Jump Distance data with columns 'JD_Freq' and 'JD_Bin_Center'.
+        df (pandas.DataFrame): DataFrame containing the Jump
+            Distance data with columns **JD_Freq** and **JD_Bin_Center**.
     Returns:
         pandas.DataFrame: DataFrame containing the fitted parameters and their errors.
+        It will add the new columns **JD3xn_a1**, **JD3xn_a1_error**,
+        **JD3xn_a2**, **JD3xn_a2_error**, **JD3xn_a3**, **JD3xn_a3_error**,
+        **JD3xn_D1**, **JD3xn_D1_error**, **JD3xn_D2**, **JD3xn_D2_error**,
+        **JD3xn_D3**, **JD3xn_D3_error**, **JD3xn_Alpha1**, **JD3xn_Alpha1_error**,
+        **JD3xn_Alpha2**, **JD3xn_Alpha2_error**, **JD3xn_Alpha3**, and **JD3xn_Alpha3_error**.
     """
     # Check if the DataFrame is empty. I don't know why this is necessary but curve_fit
     # throws an error that ydata is empty if this is not done.
@@ -525,25 +546,26 @@ def flag_alpha_by_val(df):
     ALPHA_THRESHOLDS defined in the constants module.
     The classification is done into four categories: 'ignore', 'sub', 'sup', and 'normal'.
     Parameters:
-        df (pandas.DataFrame): DataFrame containing the MSD data with columns 'Lag_T' and 'MSD'.
+        df (pandas.DataFrame): DataFrame containing the MSD data
+            with columns **Lag_T** and **MSD**.
     Returns:
         pandas.DataFrame: DataFrame with an additional column 
-        'Alpha_Flag' indicating the anomalousness exponent.
+            **Alpha_Flag_THS** indicating the anomalousness exponent.
     """
     alpha_ignore = const.ALPHA_THRESHOLDS['ignore']
     alpha_sub = const.ALPHA_THRESHOLDS['sub']
     alpha_sup = const.ALPHA_THRESHOLDS['sup']
     
     msd_points = const.MSD_SLOPE_POINTS
-    df['Alpha_Flag'] = 'normal'
+    df['Alpha_Flag_THS'] = 'normal'
 
     norm_msd = df['MSD'].iloc[msd_points-1] / df['MSD'].iloc[0]
     if norm_msd <= msd_points ** alpha_ignore:
-        df['Alpha_Flag'] = 'ignore'
+        df['Alpha_Flag_THS'] = 'ignore'
     elif norm_msd <= msd_points ** alpha_sub:
-        df['Alpha_Flag'] = 'sub'
+        df['Alpha_Flag_THS'] = 'sub'
     elif norm_msd >= msd_points ** alpha_sup:
-        df['Alpha_Flag'] = 'sup'
+        df['Alpha_Flag_THS'] = 'sup'
 
     return df
 
@@ -552,14 +574,15 @@ def flag_alpha_by_fit(df):
     Flag the anomalousness exponent (Alpha) from the normalized 
     MSD plot in log-log scale through fitting a line to the first few points.
     Parameters:
-        df (pandas.DataFrame): DataFrame containing the MSD data with columns 'Lag_T' and 'MSD'.
+        df (pandas.DataFrame): DataFrame containing the MSD data 
+            with columns **Lag_T** and **MSD**.
     Returns:
         pandas.DataFrame: DataFrame with an additional column 
-        'Alpha_Flag' indicating the anomalousness exponent.
-        'Alpha' column contains the slope of the line fitted to the log-log data.
+        **Alpha_Flag_Fit** indicating the anomalousness exponent.
+        **Alpha** column contains the slope of the line fitted to the log-log data.
     """
     num_points = const.MSD_SLOPE_POINTS
-    df['Alpha_Flag'] = 'normal'
+    df['Alpha_Flag_Fit'] = 'normal'
     df['Alpha'] = np.nan
 
     msd = df['MSD'].iloc[:num_points]
@@ -576,11 +599,11 @@ def flag_alpha_by_fit(df):
     alpha_sup = const.ALPHA_THRESHOLDS['sup']
 
     if slope <= alpha_ignore:
-        df['Alpha_Flag'] = 'ignore'
+        df['Alpha_Flag_Fit'] = 'ignore'
     elif slope <= alpha_sub:
-        df['Alpha_Flag'] = 'sub'
+        df['Alpha_Flag_Fit'] = 'sub'
     elif slope >= alpha_sup:
-        df['Alpha_Flag'] = 'sup'
+        df['Alpha_Flag_Fit'] = 'sup'
 
     df['Alpha'] = slope
     return df
@@ -598,7 +621,7 @@ def alpha_classes(df):
         df (pd.DataFrame): Input DataFrame containing the MSD values and
             'Alpha_Flag' column.
     Returns:
-        pd.DataFrame: A DataFrame with two columns:
+        pd.DataFrame: A new DataFrame with two columns:
             - 'Alpha_Flag': The class flag for the alpha value.
             - 'Alpha': The calculated slope (alpha) value.
     Notes:
@@ -622,8 +645,8 @@ def calc_d_mean_alpha(df):
     Returns:
         pd.DataFrame: A DataFrame with the mean diffusion coefficient for each alpha class.
         two columns are returned:
-            - 'D_Mean_Alpha': The mean diffusion coefficient for an alpha class.
-            - 'D_Mean_Alpha_error': The error associated with the diffusion coefficient.
+            - D_Mean_Alpha: The diffusion coefficient for an mean of alpha in each alpha class.
+            - D_Mean_Alpha_error: The error associated with the diffusion coefficient.
     """
     alpha = df['Alpha_Mean'].iloc[0]
 
@@ -666,8 +689,9 @@ def calc_d_fix_alpha(df):
     Returns:
         pd.DataFrame: A DataFrame with the diffusion coefficient for each alpha.
         two new columns are added:
-            - 'D_Fixed_Alpha': The calculated diffusion coefficient.
-            - 'D_Fixed_Alpha_error': The error associated with the diffusion coefficient.
+            - D_Fixed_Alpha: The calculated diffusion coefficient with fixed alpha 
+                from Alpha Column fitted to a normalized MSD
+            - D_Fixed_Alpha_error: The error associated with the diffusion coefficient.
     """
     alpha = df['Alpha'].iloc[0]
 
@@ -802,7 +826,8 @@ def calculate_diff_d_moving_window(df):
     Parameters:
         df (pandas.DataFrame): DataFrame containing the trajectory data with columns 'X' and 'Y'.
     Returns:
-        pandas.DataFrame: DataFrame containing the diffusion coefficient results with columns 'MW_D' and 'MW_D_error'.
+        pandas.DataFrame: DataFrame containing the diffusion 
+        coefficient results with columns **MW_D** and **MW_D_error**.
     """
 
     # df is verified to be larger than window length during the mutation process
