@@ -5,6 +5,12 @@ This file contains all the constants used in the project.
 DT = 0.033  # Time interval between frames in seconds
 MSD_LENGTH_DIVISOR = 0.5  # The maximum lag time is set to 60% of the total time
 # Thresholds for alpha values
+
+# Nanometer to micrometer conversion factor if needed
+# If the trackmate data is in nanometers put this value to 0.001
+# otherwise, if the data is in micrometers, set it to 1
+NANOMETER_TO_MICROMETER = 0.001  # Conversion factor from nanometers to micrometers
+
 ALPHA_THRESHOLDS = {
     # between 0.8 and 1.2 is considered normal diffusion
     'ignore': 0.3,  # Ignore tracks with alpha <= 0.3

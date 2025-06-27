@@ -26,12 +26,13 @@ def calculate_msd(df) -> pd.DataFrame:
         pandas.DataFrame: DataFrame containing the MSD results with columns 'Lag', 'MSD', and 'T'.
     """
     dt = const.DT
+    cf = const.NANOMETER_TO_MICROMETER  # Conversion factor from nanometers to micrometers
     max_lag =round(const.MSD_LENGTH_DIVISOR * len(df))  # Set the maximum lag time to 60% of the total time
     msd_results = {}
     for lag in range(1, max_lag + 1):
         dy = df['Y'].diff(periods=lag).dropna()
         dx = df['X'].diff(periods=lag).dropna()
-        displacement = (dx*0.001)**2 + (dy*0.001)**2 # convert to microns
+        displacement = (dx*cf)**2 + (dy*cf)**2 # convert to microns
         msd_results[lag] = displacement.mean()
     msd_df = pd.DataFrame(list(msd_results.items()), columns=['Lag_T', 'MSD'])
     msd_df['Lag_T'] = msd_df['Lag_T'] * dt
