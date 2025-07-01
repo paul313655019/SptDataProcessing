@@ -15,14 +15,18 @@ def clean_data(df)->pd.DataFrame:
     """
     Cleans the input DataFrame by performing the following operations:
     1. Drops the first three rows (assumed to be unit information).
-    2. Selects specific columns: 'TRACK_ID', 'POSITION_X', 'POSITION_Y', 'POSITION_T', 'FRAME'.
-    3. Converts data types of the selected columns:
-    4. Drops rows where 'TRACK_ID' is NaN.
-    
+    2. Selects specific columns: **TRACK_ID**, **POSITION_X**, **POSITION_Y**, **POSITION_T**, **FRAME**.
+    3. Renames the selected columns to **TrackID**, **X**, **Y**, **T**, and **Frame**.
+    4. Converts data types of the selected columns:
+        - **TrackID** to int32
+        - **X**, **Y**, **T** to float32
+        - **Frame** to int32
+    5. Drops rows where **TrackID** is NaN.
+
     Args:
         df (pd.DataFrame): The input DataFrame to be cleaned.
     Returns:
-        pd.DataFrame: The cleaned DataFrame with the specified transformations applied.
+        df (pd.DataFrame): The cleaned DataFrame with **TrackID**, **X**, **Y**, **T**, and **Frame** columns.
     """
     
     # Drop rows 0, 1, and 2 they are unit information
@@ -58,10 +62,18 @@ def format_track_id(x:int)->str:
 def load_csv_files(csv_root)->pd.DataFrame:
     """
     Load and combine multiple CSV files from a specified directory into a single DataFrame.
+    The necessary columns are selected, cleaned, and sorted by 'TrackID' and 'Frame'.
+    The cleaning steps includes dropping specific rows, renaming columns, converting data types.
+    New columns 'FileID' and 'UID' are created to uniquely identify each track. FileID 
+    is derived from the filename, and UID is a combination of FileID and TrackID. There is
+    also a formatting step for TrackID to ensure it has leading zeros before 
+    concatenation with FileID to create UID.
     Args:
         csv_root (str): The root directory containing the CSV files.
     Returns:
-        pd.DataFrame: A DataFrame containing the combined data from all CSV files in the directory.
+        df (pd.DataFrame): A DataFrame containing the combined data from all CSV files in the directory.
+        The DataFrame includes columns **TrackID**, **X**, **Y**, **T**, 
+        **Frame**, **FileID**, and **UID**.
     """
 
     path = Path(csv_root)

@@ -1,13 +1,13 @@
 # %% # MARK: Imports
 from pathlib import Path
-import pandas as pd
 import numpy as np
+import pandas as pd # noqa
 import plotly.express as px
 import importlib
 import holoviews as hv
 from holoviews import opts
-from holoviews.selection import link_selections
 
+# Custom modules
 import util.data_preprocessing as dpp
 import util.analysis_functions as nlss
 import util.look_and_feel as laf
@@ -26,7 +26,7 @@ def reload_modules():
     importlib.reload(laf)
     importlib.reload(const)
 
-# Call the reload function to ensure all modules are up-to-date
+# Call the reload_modules() function to ensure all modules are up-to-date
 reload_modules()
 #
 #
