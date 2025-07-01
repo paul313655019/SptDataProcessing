@@ -1,3 +1,8 @@
 .vscode/
 *.pyc
 figure.svg
+main.py
+.ipynb_checkpoints/Untitled-checkpoint.ipynb
+.gitignore
+.cache/marimo/logs/github-copilot-lsp.log
+.virtual_documents/Untitled.ipynb

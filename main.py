@@ -595,4 +595,7 @@ line_plot = (
 # Combine scatter and line plot vertically
 chart = scatter & line_plot
 chart.show()
+#
+#
+#
 # %%
