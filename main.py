@@ -45,35 +45,110 @@ df.head(20)
 # %% # * ====================================
 # MARK: Save Data
 df.to_parquet(data_path / 'tracking_results.parquet', index=False)
+# Save the data when you are done. 
+# Parquet format is more efficient for large datasets and maintains data types.
+# Otherwise one can use df.to_csv("<path_to_save_csv>") to save the data in CSV format.
 #
 #
 #
-#
-#
-# %% # * ====================================
+# * ====================================
 # MARK: Data Preprocessing
 # All the analysis are done in this section
+# There are more ananlysis functions in util/analysis_functions.py
+# such as typical anomalous diffusion analysis, and JD analysis with 
+# more than two components in an anomalous diffusion model
+# %% # * Add the MSD Lag_T columns
+# This is necessary for all the MSD based analysis
 df = df.groupby('UID').apply(nlss.calculate_msd).reset_index(drop=True)
-
+#
+#
+#
+# %% # * Fit Norm MSD in log-log scale to find alpha
+# Use the alpha value to flag each trajectory as well. 
+# The flags are based on ALPHA_THRESHOLDS defined in util/constants.py
 df = df.groupby('UID').apply(nlss.flag_alpha_by_fit).reset_index(drop=True)
-
+#
+#
+#
+# %% # * Calculate the mean of Alpha for each alpha flag (class)
+df['Alpha_Mean'] = df.groupby('Alpha_Flag')['Alpha'].transform('mean')
+#
+#
+#
+# %% # * Calculate D when Alpha is fixed to the mean of its class
+df = df.groupby('UID').apply(nlss.calc_d_mean_alpha).reset_index(drop=True)
+#
+#
+#
+# %% # * Calculate D when Alpha is fixed (exact value for that trajectory)
+df = df.groupby('UID').apply(nlss.calc_d_fix_alpha).reset_index(drop=True)
+#
+#
+#
+# %% # * Create a new dataframe with two columns: Alpha Flag , mean Alpha for each flag (class)
 alphas = (
     df.groupby('UID')[['MSD', 'Alpha_Flag']].apply(nlss.alpha_classes)
     .reset_index(drop=True).groupby('Alpha_Flag')['Alpha'].mean()
 )
-
-df['Alpha_Mean'] = df.groupby('Alpha_Flag')['Alpha'].transform('mean')
-
-df = df.groupby('UID').apply(nlss.calc_d_fix_alpha).reset_index(drop=True)
-df = df.groupby('UID').apply(nlss.calc_d_mean_alpha).reset_index(drop=True)
-
-df = df.groupby('UID').apply(nlss.calculate_jd).reset_index(drop=True)
-
+#
+#
+#
+# %% # * Calculate D in normal diffusion model
 df = df.groupby('UID').apply(nlss.calculate_diff_d).reset_index(drop=True)
+#
+#
+#
+# %% # * Calculate the JD counts and bin centers
+df = df.groupby('UID').apply(nlss.calculate_jd).reset_index(drop=True)
+#
+#
+#
+# %% # * Perform JD fitting with one component
 df = df.groupby('UID').apply(nlss.fit_jd_1exp_norm).reset_index(drop=True)
+#
+#
+#
+# %% # * Perform JD fitting with two components
 df = df.groupby('UID').apply(nlss.fit_jd_2exp_norm).reset_index(drop=True)
+#
+#
+#
+# %% # * Get the dataframe info and head
 df.info()
 df.head()
+#
+#
+#
+# %% # * ====================================
+# MARK: Plot MSD JD
+# Create a Holoviews Dataset for the MSD vs Lag_T plot
+# Overlay all curves for each TrackID
+msd_overlay = hv.NdOverlay({
+    uid: hv.Curve(
+        (group['Lag_T'].iloc[0:6],  # Use first 6 points for MSD
+        group['MSD'].iloc[0:6] / group['MSD'].iloc[0]),  # Normalize by first value
+        label=str(uid)
+    ).opts(
+        line_width=2, color='blue', alpha=0.05
+    )
+    for uid, group in df.groupby('TrackID')
+})
+
+msd_overlay.opts(
+    title="Normalized MSD vs Lag_T for all TrackIDs",
+    xlabel="Lag Time (s)",
+    ylabel="Normalized Mean Squared Displacement (MSD)",
+    logx=True,
+    logy=True,
+    show_legend=False,
+    width=600,
+    height=400,
+    toolbar='above',
+    backend_opts={"plot.output_backend": "svg"}
+)
+
+# Display the plot
+msd_overlay
 #
 #
 #
@@ -124,18 +199,30 @@ for uid, group in df.groupby('UID'):
         )
 
 fig.update_layout(
+    template='plotly_white',
     xaxis_title='Lag Time (s)',
     yaxis_title='Mean Squared Displacement (MSD)',
-    paper_bgcolor='rgb(255, 255, 255)',
-    plot_bgcolor='rgb(255, 255, 255)',
     title='MSD vs Lag_T for all FileIDs and TrackIDs',
     # xaxis_range=[0.01, 0.2],
-    # yaxis_range=[0.01, 2.5],
+    yaxis_range=[0.01, None],
     xaxis_type='log',
-    yaxis_type='log'
+    yaxis_type='log',
+    showlegend=False,
+    xaxis=dict(
+        showline=True,
+        linecolor='black',
+        linewidth=2,
+        mirror=True  # Draws axis lines on both bottom/top or left/right
+    ),
+    yaxis=dict(
+        showline=True,
+        linecolor='black',
+        linewidth=1,
+        mirror=True
+    ),
 )
 
-fig.show()
+laf.set_plotly_config(fig)  # wrapper for fig.show(config=config)
 #
 #
 #

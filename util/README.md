@@ -53,6 +53,7 @@ The other columns are added after each analysis is applied to the data.
 - **JD3xn_a3**: Third Amplitude for the third component in the normal diffusion model with three components
 - **Alpha_Flag_THS**: Flags the alpha value from a single point in the normalized MSD plot (in log-log scale)
 - **Alpha_Flag_Fit**: Flags the alpha value by fitting the normalized MSD plot to a line (in log-log scale)
+- **Alpha**: Anomalous diffusion exponent from the normalized MSD plot fitting (in log-log scale)
 - **D_Mean_Alpha**: Diffusion coefficient in an anomalous diffusion model where alpha is fixed to mean value of its class (e.g., 1.0 for normal diffusion)
 - **D_Mean_Alpha_Error**: Error of D_Mean_Alpha
 - **D_Fixed_Alpha**: Diffusion coefficient in an anomalous diffusion model where alpha is fixed to a specific value from the log-log normalized MSD plot

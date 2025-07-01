@@ -39,7 +39,7 @@ def set_plotly_config(fig):
         'toImageButtonOptions': {
             'scale': 1,
             'format': 'svg',
-            'filename': 'figure',
+            'filename': 'figure.svg',
             'width': 800,
             'height': 600
         }
