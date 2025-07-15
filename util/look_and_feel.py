@@ -68,7 +68,42 @@ def plotly_plot_diff_coef_hist(df):
         title='Diffusion Coefficient Histogram',
         width=800,
         height=600,
-        # bargap=0.01,
+        bargap=0.01,
+        # xaxis_range=[0.1, 1],
+        # yaxis_range=[0, 2],
+        # paper_bgcolor='rgba(255, 255, 255, 0.90)',
+        # plot_bgcolor='rgba(60, 60, 60, 0.44)'
+        template='plotly_white',
+        showlegend=False,
+        xaxis=dict(
+            showline=True,
+            linecolor='black',
+            linewidth=2,
+            mirror=True  # Draws axis lines on both bottom/top or left/right
+        ),
+        yaxis=dict(
+            showline=True,
+            linecolor='black',
+            linewidth=2,
+            mirror=True
+        ),
+    )
+
+    return set_plotly_config(fig)
+
+def plotly_plot_alpha_hist(df):
+    """
+    Plot the diffusion coefficient Histogram.
+    """
+    grouped_df = df.groupby('UID')['Alpha'].first().reset_index()
+    fig = px.histogram(x=grouped_df['Alpha'], nbins=150)
+    fig.update_layout(
+        xaxis_title='Alpha',
+        yaxis_title='Count',
+        title='Alpha Histogram',
+        width=800,
+        height=600,
+        bargap=0.01,
         # xaxis_range=[0.1, 1],
         # yaxis_range=[0, 2],
         # paper_bgcolor='rgba(255, 255, 255, 0.90)',
