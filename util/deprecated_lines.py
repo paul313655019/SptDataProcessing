@@ -25,3 +25,9 @@ def calculate_distance(df):
     df['Dist'] = np.sqrt((df['X'] - df['X'].shift())**2 + (df['Y'] - df['Y'].shift())**2)
     df['Dist'] = df['Dist'].fillna(0)  # Fill NaN values with 0 for the first element
     return df
+
+
+alphas = (
+    df.groupby('UID')[['MSD', 'Alpha_Flag_Fit']].apply(nlss.alpha_classes)
+    .reset_index(drop=True).groupby('Alpha_Flag')['Alpha'].mean()
+)

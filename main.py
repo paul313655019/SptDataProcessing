@@ -71,7 +71,7 @@ df = df.groupby('UID').apply(nlss.flag_alpha_by_fit).reset_index(drop=True)
 #
 #
 # %% # * Calculate the mean of Alpha for each alpha flag (class)
-df['Alpha_Mean'] = df.groupby('Alpha_Flag')['Alpha'].transform('mean')
+df['Alpha_Mean'] = df.groupby('Alpha_Flag_Fit')['Alpha'].transform('mean')
 #
 #
 #
@@ -86,10 +86,7 @@ df = df.groupby('UID').apply(nlss.calc_d_fix_alpha).reset_index(drop=True)
 #
 #
 # %% # * Create a new dataframe with two columns: Alpha Flag , mean Alpha for each flag (class)
-alphas = (
-    df.groupby('UID')[['MSD', 'Alpha_Flag']].apply(nlss.alpha_classes)
-    .reset_index(drop=True).groupby('Alpha_Flag')['Alpha'].mean()
-)
+alphas = df.groupby('Alpha_Flag_Fit')['Alpha'].mean()
 #
 #
 #
@@ -116,6 +113,37 @@ df = df.groupby('UID').apply(nlss.fit_jd_2exp_norm).reset_index(drop=True)
 # %% # * Get the dataframe info and head
 df.info()
 df.head()
+#
+#
+#
+# %% # * ====================================
+# Plot a histogram of the 'D' column
+reload_modules()
+# laf.plotly_plot_diff_coef_hist(df)
+# laf.plotly_plot_diff_coef_logloghist(df)
+laf.plotly_plot_diff_coef_loglogarea(df)
+
+# %% # * ====================================
+# Plot MSD vs Lag_T for each FileID and TrackID
+# MSDs are normalized by the first MSD value for each UID
+# This is to compare the MSDs across all the trajectories
+reload_modules()
+laf.plotly_plot_norm_loglog_msd(df)
+#
+#
+#
+# %% # * ====================================
+# Plot MSD vs Lag_T for each FileID and TrackID
+# Color from the alpha flag
+reload_modules()
+laf.plotly_plot_norm_msd_grouped(df, alphas)
+#
+#
+#
+# %% # * ====================================
+# Plot a scatter plot of D_Fixed_Alpha vs Alpha
+reload_modules()
+laf.plotly_plot_diff_coef_vs_alpha(df)
 #
 #
 #
@@ -157,7 +185,7 @@ msd_overlay
 # Filter the data for a specific FileID
 file_ids = df['FileID'].unique()
 filtered_df = df[df['FileID'] == file_ids[0]]
-filtered_df = filtered_df[filtered_df['D'] > 0.09]
+filtered_df = filtered_df[filtered_df['D_Fixed_Alpha'] > 0.09]
 # filtered_df = filtered_df[filtered_df['D'] > 0.7]
 
 # Plot the filtered trajectories
@@ -168,117 +196,7 @@ fig.show(config=config)
 #
 #
 #
-# %% # * ====================================
-# Plot a histogram of the 'D' column
-grouped_df = df.groupby('UID')['D'].first().reset_index()
-grouped_df = grouped_df[grouped_df['D'] > 0.1]
-fig = px.histogram(x=grouped_df['D'], nbins=150)
-fig.update_layout(
-    xaxis_title='Diffusion Coefficient (D)',
-    yaxis_title='Count',
-    bargap=0.01,
-    paper_bgcolor='rgba(255, 255, 255, 0.90)',
-    plot_bgcolor='rgba(60, 60, 60, 0.44)'
-)
-fig.show()
 
-# %% # * ====================================
-# Plot MSD vs Lag_T for each FileID and TrackID
-# MSDs are normalized by the first MSD value for each UID
-# This is to compare the MSDs across all the trajectories
-fig = px.line()
-
-for uid, group in df.groupby('UID'):
-    fig.add_scatter(
-        x=group['Lag_T'], 
-        y=group['MSD'].iloc[0:6] / group['MSD'].iloc[0],
-        mode='lines', 
-        name=uid,
-        line=dict(color='blue', width=1),
-        opacity=const.OPACITY_PARAM/len(df['UID'].unique()) # 16 is just a number so for my testing set with 321 UIDs, this gives ∼0.05 opacity
-        )
-
-fig.update_layout(
-    template='plotly_white',
-    xaxis_title='Lag Time (s)',
-    yaxis_title='Mean Squared Displacement (MSD)',
-    title='MSD vs Lag_T for all FileIDs and TrackIDs',
-    # xaxis_range=[0.01, 0.2],
-    yaxis_range=[0.01, None],
-    xaxis_type='log',
-    yaxis_type='log',
-    showlegend=False,
-    xaxis=dict(
-        showline=True,
-        linecolor='black',
-        linewidth=2,
-        mirror=True  # Draws axis lines on both bottom/top or left/right
-    ),
-    yaxis=dict(
-        showline=True,
-        linecolor='black',
-        linewidth=1,
-        mirror=True
-    ),
-)
-
-laf.set_plotly_config(fig)  # wrapper for fig.show(config=config)
-#
-#
-#
-# %% # * ====================================
-# Plot MSD vs Lag_T for each FileID and TrackID
-# Color from the alpha flag
-fig = px.line()
-
-for uid, group in df.groupby('UID'):
-    color = 'green'
-    if group['Alpha_Flag'].iloc[0] == 'ignore':
-        color = 'black'
-    elif group['Alpha_Flag'].iloc[0] == 'sub':
-        color = 'blue'
-    elif group['Alpha_Flag'].iloc[0] == 'sup':
-        color = 'red'
-
-    fig.add_scatter(
-        x=group['Lag_T'], 
-        y=group['MSD'].iloc[0:6] / group['MSD'].iloc[0],
-        mode='lines', 
-        name=uid,
-        line=dict(color=color, width=5),
-        opacity=10/len(df['UID'].unique()) # 10 is just a number so for my testing set with 321 UIDs, this gives ∼0.05 opacity
-        )
-
-    # Add three plots for different alpha values from alphas DataFrame
-    for alpha_flag, alpha_value in alphas.items():
-        color = 'green' if alpha_flag == 'normal' else 'blue' if alpha_flag == 'sub' else 'red' if alpha_flag == 'sup' else 'grey'
-        msd_trend = np.array(range(1, 7)) ** alpha_value  # Assuming the first 6 points are used for MSD
-        fig.add_scatter(
-            x=group['Lag_T'].iloc[0:6],
-            y=msd_trend,
-            mode='lines',
-            name=f'{alpha_flag} (Alpha={alpha_value:.2f})',
-            line=dict(color=color, width=2),
-            opacity=1
-        )
-
-fig.update_layout(
-    xaxis_title='Lag Time (s)',
-    yaxis_title='Mean Squared Displacement (MSD)',
-    paper_bgcolor='rgb(255, 255, 255)',
-    plot_bgcolor='rgb(255, 255, 255)',
-    title='MSD vs Lag_T for all FileIDs and TrackIDs',
-    # xaxis_range=[0.01, 0.2],
-    # yaxis_range=[0.01, 2.5],
-    xaxis_type='log',
-    yaxis_type='log', 
-    showlegend=False
-)
-
-fig.show()
-#
-#
-#
 # %% # * ====================================
 # Plot JD_Freq against JD_bin_centers for one of the UID in the df
 uid_to_plot = df['UID'].unique()[4]
@@ -449,33 +367,7 @@ fig.show()
 #
 #
 #
-# %% # * ====================================
-# Plot a scatter plot of D_Fixed_Alpha vs Alpha
-grouped_df = df.groupby('UID')[['D_Fixed_Alpha', 'Alpha', 'Alpha_Flag']].first().reset_index()
-fig = px.scatter(
-    grouped_df, 
-    x='Alpha', 
-    y='D_Fixed_Alpha', 
-    color='Alpha_Flag',
-    color_discrete_map={
-        'ignore': 'black',
-        'sub': 'blue',
-        'sup': 'red',
-        'normal': 'green'
-    }
-)
-fig.update_layout(
-    xaxis_title='Alpha',
-    yaxis_title='Diffusion Coefficient (µm²/s)',
-    paper_bgcolor='rgb(255, 255, 255)',
-    plot_bgcolor='rgb(220, 220, 220)',
-    yaxis_range=[-0.5, 6]
-)
 
-fig.show()
-#
-#
-#
 #%% # MARK: Find track
 # * ====================================
 # * Plot all tracks, to find a long track

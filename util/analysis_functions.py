@@ -633,7 +633,7 @@ def alpha_classes(df):
     result = pd.DataFrame()
     norm_msd_point = df['MSD'].iloc[const.MSD_SLOPE_POINTS-1] / df['MSD'].iloc[0]
     slope = np.log(norm_msd_point) / np.log(const.MSD_SLOPE_POINTS)
-    result['Alpha_Flag'] = [df['Alpha_Flag'].iloc[0]]
+    result['Alpha_Flag'] = [df['Alpha_Flag_Fit'].iloc[0]]
     result['Alpha'] = [slope]
     return result
 
