@@ -84,7 +84,7 @@ def plotly_plot_diff_coef_hist(df):
         yaxis=dict(
             showline=True,
             linecolor='black',
-            linewidth=1,
+            linewidth=2,
             mirror=True
         ),
     )
@@ -128,7 +128,7 @@ def plotly_plot_norm_loglog_msd(df):
         yaxis=dict(
             showline=True,
             linecolor='black',
-            linewidth=1,
+            linewidth=2,
             mirror=True
         ),
     )
@@ -164,7 +164,7 @@ def plotly_plot_diff_coef_logloghist(df):
         yaxis=dict(
             showline=True,
             linecolor='black',
-            linewidth=1,
+            linewidth=2,
             mirror=True
         ),
     )
@@ -200,7 +200,7 @@ def plotly_plot_diff_coef_loglogarea(df):
         yaxis=dict(
             showline=True,
             linecolor='black',
-            linewidth=1,
+            linewidth=2,
             mirror=True
         ),
     )
@@ -228,7 +228,7 @@ def plotly_plot_norm_msd_grouped(df, alphas):
             mode='lines', 
             name=uid,
             line=dict(color=color, width=5),
-            opacity=10/len(df['UID'].unique()) # 10 is just a number so for my testing set with 321 UIDs, this gives ∼0.05 opacity
+            opacity=const.OPACITY_PARAM/len(df['UID'].unique()) # 16 (const.OPACITY_PARAM) is just a number so for my testing set with 321 UIDs, this gives ∼0.05 opacity
             )
 
         # Add three plots for different alpha values from alphas DataFrame
@@ -265,7 +265,7 @@ def plotly_plot_norm_msd_grouped(df, alphas):
         yaxis=dict(
             showline=True,
             linecolor='black',
-            linewidth=1,
+            linewidth=2,
             mirror=True
         ),
     )
@@ -317,7 +317,7 @@ def plotly_plot_diff_coef_vs_alpha(df):
         yaxis=dict(
             showline=True,
             linecolor='black',
-            linewidth=1,
+            linewidth=2,
             mirror=True
         ),
     )

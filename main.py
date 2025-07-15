@@ -122,7 +122,9 @@ reload_modules()
 # laf.plotly_plot_diff_coef_hist(df)
 # laf.plotly_plot_diff_coef_logloghist(df)
 laf.plotly_plot_diff_coef_loglogarea(df)
-
+#
+#
+#
 # %% # * ====================================
 # Plot MSD vs Lag_T for each FileID and TrackID
 # MSDs are normalized by the first MSD value for each UID
