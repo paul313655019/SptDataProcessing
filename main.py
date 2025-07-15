@@ -182,7 +182,7 @@ msd_overlay.opts(
 )
 
 # Display the plot
-msd_overlay
+msd_overlay #type: ignore
 #
 #
 #
