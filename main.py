@@ -126,6 +126,10 @@ laf.plotly_plot_diff_coef_loglogarea(df)
 #
 #
 # %% # * ====================================
+# Plot a histogram of the 'Alpha' column
+reload_modules()
+laf.plotly_plot_alpha_hist(df)
+# %% # * ====================================
 # Plot MSD vs Lag_T for each FileID and TrackID
 # MSDs are normalized by the first MSD value for each UID
 # This is to compare the MSDs across all the trajectories
