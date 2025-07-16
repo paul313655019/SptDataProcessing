@@ -55,13 +55,13 @@ def set_plotly_config(fig):
     }
     return fig.show(config=config)
 
-def plotly_plot_diff_coef_hist(df):
+def plotly_plot_diff_coef_hist(df, column='D_Fixed_Alpha'):
     """
     Plot the diffusion coefficient Histogram.
     """
-    grouped_df = df.groupby('UID')['D_Fixed_Alpha'].first().reset_index()
+    grouped_df = df.groupby('UID')[column].first().reset_index()
     # grouped_df = grouped_df[grouped_df['D_Fixed_Alpha'] > 0.1]
-    fig = px.histogram(x=grouped_df['D_Fixed_Alpha'], nbins=150)
+    fig = px.histogram(x=grouped_df[column], nbins=150)
     fig.update_layout(
         xaxis_title='Diffusion Coefficient (D)',
         yaxis_title='Count',
@@ -91,12 +91,12 @@ def plotly_plot_diff_coef_hist(df):
 
     return set_plotly_config(fig)
 
-def plotly_plot_alpha_hist(df):
+def plotly_plot_alpha_hist(df, column='Alpha'):
     """
     Plot the diffusion coefficient Histogram.
     """
-    grouped_df = df.groupby('UID')['Alpha'].first().reset_index()
-    fig = px.histogram(x=grouped_df['Alpha'], nbins=150)
+    grouped_df = df.groupby('UID')[column].first().reset_index()
+    fig = px.histogram(x=grouped_df[column], nbins=150)
     fig.update_layout(
         xaxis_title='Alpha',
         yaxis_title='Count',
@@ -170,10 +170,10 @@ def plotly_plot_norm_loglog_msd(df):
 
     return set_plotly_config(fig)
 
-def plotly_plot_diff_coef_logloghist(df):
+def plotly_plot_diff_coef_logloghist(df, column='D_Fixed_Alpha'):
 
-    grouped_df = df.groupby('UID')['D_Fixed_Alpha'].first().reset_index()
-    hist, bin = np.histogram(grouped_df['D_Fixed_Alpha'], bins=150)
+    grouped_df = df.groupby('UID')[column].first().reset_index()
+    hist, bin = np.histogram(grouped_df[column], bins=150)
     bin_centers = 0.5 * (bin[:-1] + bin[1:])
 
     fig = px.bar(x=bin_centers, y=hist)
@@ -205,12 +205,12 @@ def plotly_plot_diff_coef_logloghist(df):
     )
     return set_plotly_config(fig)
 
-def plotly_plot_diff_coef_loglogarea(df):
+def plotly_plot_diff_coef_loglogarea(df, column='D_Fixed_Alpha'):
     """
     Plot the diffusion coefficient Histogram with log-log area.
     """
-    grouped_df = df.groupby('UID')['D_Fixed_Alpha'].first().reset_index()
-    hist, bin = np.histogram(grouped_df['D_Fixed_Alpha'], bins=150)
+    grouped_df = df.groupby('UID')[column].first().reset_index()
+    hist, bin = np.histogram(grouped_df[column], bins=150)
     bin_centers = 0.5 * (bin[:-1] + bin[1:])
     fig = px.area(x=bin_centers, y=hist)
     fig.update_traces(fill='tozeroy')  # Fill the area under the curve

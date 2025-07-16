@@ -866,3 +866,39 @@ def calculate_diff_d_moving_window(df):
         df.iloc[i : i + window - 1, df.columns.get_loc("MW_D")] = d_coefficient
 
     return df
+
+def calculate_ensemble_msd(df, max_lag=50, track_col='TrackID', x_col='X', y_col='Y'):
+    """
+    Calculate the ensemble Mean Squared Displacement (MSD) for the trajectory data.
+    
+    The MSD is calculated as the average of the squared displacements over all points in the trajectory.
+    Parameters:
+        df (pandas.DataFrame): DataFrame containing the trajectory data with columns 'X' and 'Y'.
+    Returns:
+        pandas.DataFrame: DataFrame containing the ensemble MSD results with columns **Lag_T** and **MSD**.
+    """
+    # Filter trajectories with enough frames
+    valid_tracks = df.groupby(track_col).filter(lambda x: len(x) > max_lag)
+    msd_results = []
+
+    for lag in range(1, max_lag + 1):
+        disp_list = []
+        n_particles = 0
+        for track_id, group in valid_tracks.groupby(track_col):
+            group = group.sort_values('Frame')
+            x = group[x_col].values
+            y = group[y_col].values
+            if len(x) > lag:
+                dx = x[lag:] - x[:-lag]
+                dy = y[lag:] - y[:-lag]
+                disp2 = dx**2 + dy**2
+                disp_list.append(disp2)
+                n_particles += len(disp2)
+        # Compute ensemble average for this lag
+        if n_particles > 0:
+            all_disp2 = np.concatenate(disp_list)
+            msd_results.append({'Lag_T': lag * const.DT, 'EnMSD': np.sum(all_disp2) / n_particles})
+        else:
+            msd_results.append({'Lag_T': lag * const.DT, 'EnMSD': np.nan})
+
+    return pd.DataFrame(msd_results)

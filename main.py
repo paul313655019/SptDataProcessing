@@ -34,7 +34,7 @@ reload_modules()
 # %% # * ====================================
 # MARK: Load data
 # Load the CSV files from the specified directory
-data_path = Path(r'F:\Mark SPT\2024.11.04\TrackingResults')
+data_path = Path(r"F:\Amir\SLB_Flaoting_Dye_Training_Set")
 df = dpp.load_csv_files(data_path)
 
 df.info()
@@ -60,6 +60,11 @@ df.to_parquet(data_path / 'tracking_results.parquet', index=False)
 # %% # * Add the MSD Lag_T columns
 # This is necessary for all the MSD based analysis
 df = df.groupby('UID').apply(nlss.calculate_msd).reset_index(drop=True)
+#
+#
+#
+# %% # * Calculate D in normal diffusion model
+df = df.groupby('UID').apply(nlss.calculate_diff_d).reset_index(drop=True)
 #
 #
 #
@@ -90,11 +95,6 @@ alphas = df.groupby('Alpha_Flag_Fit')['Alpha'].mean()
 #
 #
 #
-# %% # * Calculate D in normal diffusion model
-df = df.groupby('UID').apply(nlss.calculate_diff_d).reset_index(drop=True)
-#
-#
-#
 # %% # * Calculate the JD counts and bin centers
 df = df.groupby('UID').apply(nlss.calculate_jd).reset_index(drop=True)
 #
@@ -119,9 +119,9 @@ df.head()
 # %% # * ====================================
 # Plot a histogram of the 'D' column
 reload_modules()
-# laf.plotly_plot_diff_coef_hist(df)
+laf.plotly_plot_diff_coef_hist(df, column='D_Norm')
 # laf.plotly_plot_diff_coef_logloghist(df)
-laf.plotly_plot_diff_coef_loglogarea(df)
+# laf.plotly_plot_diff_coef_loglogarea(df)
 #
 #
 #
@@ -378,7 +378,7 @@ fig.show()
 # * ====================================
 # * Plot all tracks, to find a long track
 # Filter the data for a specific UID
-good_length = 150
+good_length = 100
 filtered_df = df.groupby('UID').filter(lambda x: len(x) > good_length)
 # Convert the series into a DataFrame
 filtered_df = filtered_df.reset_index(drop=True)
@@ -393,7 +393,7 @@ laf.set_plotly_config(fig) # wrapper for fig.show(config=config)
 # * ====================================
 # * Load the 'good' track for further analysis
 # track = filtered_df[filtered_df['UID'] == 'BMP-TAT-S001-60min-ROI02-1146']
-track = filtered_df[filtered_df['UID'] == 'BMP-TAT-S001-60min-ROI03-0349']
+track = filtered_df[filtered_df['UID'] == filtered_df['UID'].unique()[0]]
 fig = px.line(track, x='X', y='Y', color='UID')
 fig = laf.plotly_style_tracks(fig)
 laf.set_plotly_config(fig) # wrapper for fig.show(config=config)
@@ -416,7 +416,9 @@ fig.update_layout(
         showgrid=True,      # Show grid lines
         showticklabels=True,
         linecolor='black',
-        ticks='inside', 
+        ticks='inside',
+        mirror=True,        # Mirror the ticks on the opposite side
+        linewidth=2,        # Width of the axis line
     ),
     yaxis=dict(
         title='Confinement Level',
@@ -425,6 +427,8 @@ fig.update_layout(
         showticklabels=True,
         linecolor='black',
         ticks='inside',
+        mirror=True,
+        linewidth=2,
     )
 )
 laf.set_plotly_config(fig) # wrapper for fig.show(config=config)
@@ -583,4 +587,41 @@ chart.show()
 #
 #
 #
+# %% # MARK: Ensemble MSD
+enmsd = nlss.calculate_ensemble_msd(df)
+# %%
+fig = px.line()
+fig.add_scatter(
+    x=enmsd['Lag_T'],
+    y=enmsd['EnMSD'],
+    mode='lines',
+    name='Ensemble MSD',
+    line=dict(color='red', width=2)
+)
+
+fig.update_layout(
+    template='plotly_white',
+    xaxis_title='Lag Time (s)',
+    yaxis_title='Ensemble Mean Squared Displacement (MSD)',
+    title='Ensemble MSD vs Lag_T for all FileIDs and TrackIDs',
+    width=800,
+    height=600,
+    # xaxis_range=[0.01, 0.2],
+    # yaxis_range=[np.log10(0.01), None],
+    xaxis_type='log',
+    yaxis_type='log',
+    showlegend=False,
+    xaxis=dict(
+        showline=True,
+        linecolor='black',
+        linewidth=2,
+        mirror=True  # Draws axis lines on both bottom/top or left/right
+    ),
+    yaxis=dict(
+        showline=True,
+        linecolor='black',
+        linewidth=2,
+        mirror=True
+    ),
+)
 # %%

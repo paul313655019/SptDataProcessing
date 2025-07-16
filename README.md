@@ -1,5 +1,17 @@
 # SPT Toolkit to process SPT data
 
+## Main packages I used
+
+- **Pandas**: For data manipulation and analysis.
+- **NumPy**: For numerical operations.
+- **plotly**: For interactive visualizations.
+- **holoviews**: For high-level data visualization.
+- **SciPy**: For scientific computing and advanced mathematical functions.
+- **lmfit**: For curve fitting and optimization.
+- **Jupyter**: For interactive computing and data exploration.
+- **nbformat**: For Jupyter notebook formatting.
+- **pyarrow**: For reading and writing data in various formats.
+
 ## Columns
 
 The reading is done from a CSV file which is output from TrackMate (ImageJ plugin).
