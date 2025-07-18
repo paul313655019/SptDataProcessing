@@ -6,6 +6,13 @@ import plotly.express as px
 import importlib
 import holoviews as hv
 from holoviews import opts
+from holoviews.operation.datashader import (
+    datashade,
+    dynspread,
+    rasterize,
+    shade,
+    spread,
+) 
 
 # Custom modules
 import util.data_preprocessing as dpp
@@ -183,6 +190,44 @@ msd_overlay.opts(
 
 # Display the plot
 msd_overlay #type: ignore
+#
+#
+#
+# %%
+# hv.Path(df, kdims=['Lag_T', 'MSD'], groupby='UID').opts(alpha=0.1)
+#
+
+# Create a Holoviews NdOverlay for the MSD vs Lag_T plot grouped by UID
+msd_overlay = hv.NdOverlay({
+    uid: hv.Curve(
+        (group['Lag_T'], group['MSD']/ group['MSD'].iloc[0]),  # Normalize by first value
+        label=str(uid)
+    ).opts()
+    for uid, group in df.groupby('UID')
+}).opts() #type: ignore
+
+# Display the plot
+# spread(rasterize(paths), px=1) = rasterize(paths, line_width=2)
+rasterize(msd_overlay, line_width=1).opts( #type: ignore
+    alpha=1,
+    title="MSD vs Lag_T for each UID",
+    xlabel="Lag Time (s)",
+    ylabel="Mean Squared Displacement (MSD)", logy=True, logx=True,
+    xlim=(None, 0.2),
+    ylim=(1, 12),
+    width=800,
+    height=600,
+    toolbar='above',
+    clim=(0, 40),
+    backend_opts={"plot.output_backend": "svg"}) #type: ignore
+# msd_overlay
+
+#%%
+#
+# Create a heatmap of Lag_T vs MSD
+fig = px.density_heatmap(x=df["Lag_T"].iloc[0:6], y=df["MSD"].iloc[0:6], title="Heatmap of Lag_T vs MSD", nbinsx=100, nbinsy=10)
+
+fig.show()
 #
 #
 #
@@ -587,6 +632,41 @@ chart.show()
 #
 #
 #
+# %%
+import altair as alt
+from vega_datasets import data
+import vegafusion #noqa
+
+# Enable VegaFusion for server-side transforms
+alt.data_transformers.enable("vegafusion")
+
+df['MSD_norm'] = df.groupby('UID')['MSD'].transform(lambda x: x / x.iloc[0])
+
+# Altair plot: MSD vs Lag_T, all lines same color
+msd_chart = (
+    alt.Chart(df.reset_index())
+    .mark_line(color='blue', opacity=0.02, clip=True)
+    .encode(
+        x=alt.X(
+            "Lag_T:Q",
+            title="Lag Time (s)",
+            scale=alt.Scale(type="log", domain=[0.03, 0.2])
+        ),
+        y=alt.Y(
+            "MSD_norm:Q",
+            title="Mean Squared Displacement (MSD)",
+            scale=alt.Scale(type="log", domain=[1, 10])
+        ),
+        detail="UID:O",  # Group lines by UID, but do not color by UID
+    )
+    .properties(
+        width=600,
+        height=400,
+        title="MSD vs Lag_T (log-log scale)"
+    )
+)
+msd_chart.show()
+
 # %% # MARK: Ensemble MSD
 enmsd = nlss.calculate_ensemble_msd(df)
 # %%

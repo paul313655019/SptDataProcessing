@@ -5,6 +5,7 @@
 - **Pandas**: For data manipulation and analysis.
 - **NumPy**: For numerical operations.
 - **plotly**: For interactive visualizations.
+- **plotly-resampler**: For resampling large datasets in Plotly visualizations.
 - **holoviews**: For high-level data visualization.
 - **SciPy**: For scientific computing and advanced mathematical functions.
 - **lmfit**: For curve fitting and optimization.

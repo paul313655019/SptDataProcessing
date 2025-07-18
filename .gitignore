@@ -7,3 +7,4 @@ main.py
 .cache/marimo/logs/github-copilot-lsp.log
 .virtual_documents/Untitled.ipynb
 figure.svg
+visualization.svg

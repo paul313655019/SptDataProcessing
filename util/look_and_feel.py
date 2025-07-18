@@ -6,6 +6,8 @@ A place to put all the plot styling to visualize settings.
 import plotly.express as px
 import numpy as np
 import pandas as pd
+from plotly_resampler import FigureResampler
+from plotly_resampler import register_plotly_resampler, unregister_plotly_resampler
 
 # Import custom module
 import util.constants as const
@@ -130,11 +132,11 @@ def plotly_plot_norm_loglog_msd(df):
     """
     Plot the normalized log-log MSD.
     """
-    fig = px.line()
-
+    fig = FigureResampler(px.line())
+    # fig = px.line()
     for uid, group in df.groupby('UID'):
         fig.add_scatter(
-            x=group['Lag_T'], 
+            x=group['Lag_T'].iloc[0:6], 
             y=group['MSD'].iloc[0:6] / group['MSD'].iloc[0],
             mode='lines', 
             name=uid,
@@ -150,7 +152,7 @@ def plotly_plot_norm_loglog_msd(df):
         width=800,
         height=600,
         # xaxis_range=[0.01, 0.2],
-        yaxis_range=[0.01, None],
+        # yaxis_range=[0.01, None],
         xaxis_type='log',
         yaxis_type='log',
         showlegend=False,
