@@ -867,38 +867,61 @@ def calculate_diff_d_moving_window(df):
 
     return df
 
-def calculate_ensemble_msd(df, max_lag=50, track_col='TrackID', x_col='X', y_col='Y'):
+def calculate_ensemble_msd(df, max_lag=20):
     """
-    Calculate the ensemble Mean Squared Displacement (MSD) for the trajectory data.
+    Calculate ensemble mean squared displacement for particle trajectories.
     
-    The MSD is calculated as the average of the squared displacements over all points in the trajectory.
     Parameters:
-        df (pandas.DataFrame): DataFrame containing the trajectory data with columns 'X' and 'Y'.
+    df (pd.DataFrame): DataFrame with columns ['Frame', 'X', 'Y', 'UID']
+    max_lag (int): Maximum time lag to calculate MSD for
+    
     Returns:
-        pandas.DataFrame: DataFrame containing the ensemble MSD results with columns **Lag_T** and **MSD**.
+    pd.DataFrame: DataFrame with columns ['lag', 'msd', 'std_error', 'n_points']
     """
-    # Filter trajectories with enough frames
-    valid_tracks = df.groupby(track_col).filter(lambda x: len(x) > max_lag)
+    
+    # Sort dataframe by UID and Frame to ensure proper ordering
+    df = df.sort_values(['UID', 'Frame']).reset_index(drop=True)
+    
+    # Initialize arrays to store MSD values for each lag
     msd_results = []
-
+    
+    # Calculate MSD for each time lag
     for lag in range(1, max_lag + 1):
-        disp_list = []
-        n_particles = 0
-        for track_id, group in valid_tracks.groupby(track_col):
-            group = group.sort_values('Frame')
-            x = group[x_col].values
-            y = group[y_col].values
-            if len(x) > lag:
-                dx = x[lag:] - x[:-lag]
-                dy = y[lag:] - y[:-lag]
-                disp2 = dx**2 + dy**2
-                disp_list.append(disp2)
-                n_particles += len(disp2)
-        # Compute ensemble average for this lag
-        if n_particles > 0:
-            all_disp2 = np.concatenate(disp_list)
-            msd_results.append({'Lag_T': lag * const.DT, 'EnMSD': np.sum(all_disp2) / n_particles})
-        else:
-            msd_results.append({'Lag_T': lag * const.DT, 'EnMSD': np.nan})
-
+        squared_displacements = []
+        
+        # Group by particle UID
+        for uid, particle_data in df.groupby('UID'):
+            # Sort by frame to ensure chronological order
+            particle_data = particle_data.sort_values('Frame')
+            
+            # Get positions and frames
+            frames = particle_data['Frame'].values
+            x_positions = particle_data['X'].values
+            y_positions = particle_data['Y'].values
+            
+            # Calculate squared displacements for this lag
+            for i in range(len(frames) - lag):
+                # Check if we have consecutive frames (or at least the required lag)
+                if i + lag < len(frames):
+                    # Calculate displacement
+                    dx = x_positions[i + lag] - x_positions[i]
+                    dy = y_positions[i + lag] - y_positions[i]
+                    
+                    # Calculate squared displacement
+                    squared_displacement = dx**2 + dy**2
+                    squared_displacements.append(squared_displacement)
+        
+        # Calculate ensemble average for this lag
+        if squared_displacements:
+            mean_msd = np.mean(squared_displacements)
+            std_error = np.std(squared_displacements) / np.sqrt(len(squared_displacements))
+            n_points = len(squared_displacements)
+            
+            msd_results.append({
+                'lag': lag,
+                'msd': mean_msd,
+                'std_error': std_error,
+                'n_points': n_points
+            })
+    
     return pd.DataFrame(msd_results)
