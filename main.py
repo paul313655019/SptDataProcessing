@@ -126,7 +126,7 @@ df.head()
 # %% # * ====================================
 # Plot a histogram of the 'D' column
 reload_modules()
-laf.plotly_plot_diff_coef_hist(df, column='D_Norm')
+laf.plotly_plot_diff_coef_hist(df, column='D_Fixed_Alpha')
 # laf.plotly_plot_diff_coef_logloghist(df)
 # laf.plotly_plot_diff_coef_loglogarea(df)
 #
