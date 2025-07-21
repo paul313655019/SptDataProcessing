@@ -3,7 +3,7 @@
 ## Main packages I used
 
 - **Pandas**: For data manipulation and analysis.
-- **NumPy**: For numerical operations. Limit to 2.1 only (for datashader) testing
+- **NumPy**: For numerical operations. Limit to 2.1 only (for datashader) testing paul
 - **plotly**: For interactive visualizations.
 - **plotly-resampler**: For resampling large datasets in Plotly visualizations.
 - **holoviews**: For high-level data visualization.
